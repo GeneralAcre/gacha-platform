@@ -1,0 +1,21 @@
+skip_local_validator = true
+
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+gacha_er = "4re47fFt4ty2BkNS9NuhBUqDSbGZYhydkt42f4c9E7zv"
+[programs.devnet]
+gacha_er = "4re47fFt4ty2BkNS9NuhBUqDSbGZYhydkt42f4c9E7zv"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]

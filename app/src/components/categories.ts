@@ -39,3 +39,13 @@ export const CATEGORIES: CategoryInfo[] = [
 export function getCategory(category: Category): CategoryInfo {
   return CATEGORIES.find((item) => item.id === category) ?? CATEGORIES[0]
 }
+
+// The on-chain CardRecord stores which deck a mint came from as a plain byte
+// (the program never picks a deck itself) — index into CATEGORIES is the encoding.
+export function categoryToByte(category: Category): number {
+  return CATEGORIES.findIndex((item) => item.id === category)
+}
+
+export function categoryFromByte(byte: number): Category {
+  return CATEGORIES[byte]?.id ?? CATEGORIES[0].id
+}

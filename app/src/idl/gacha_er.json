@@ -473,6 +473,10 @@
         {
           "name": "pull_index",
           "type": "u32"
+        },
+        {
+          "name": "category",
+          "type": "u8"
         }
       ]
     },
@@ -641,6 +645,11 @@
       "code": 6000,
       "name": "InvalidRarity",
       "msg": "Rarity byte must be 0 (Common), 1 (Rare), or 2 (Legendary)"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidCategory",
+      "msg": "Category byte must be 0 (Life), 1 (Relationship), or 2 (Meme)"
     }
   ],
   "types": [
@@ -664,6 +673,15 @@
           {
             "name": "pull_index",
             "type": "u32"
+          },
+          {
+            "name": "category",
+            "docs": [
+              "Which client-side deck this came from (0 = Life, 1 = Relationship, 2 = Meme).",
+              "The program never picks a deck itself; this just remembers what the player chose",
+              "so a wallet's minted history can be reconstructed later."
+            ],
+            "type": "u8"
           }
         ]
       }

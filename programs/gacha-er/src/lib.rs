@@ -106,14 +106,17 @@ pub mod gacha_er {
         rarity: u8,
         card_seed: u8,
         pull_index: u32,
+        category: u8,
     ) -> Result<()> {
         require!(rarity <= 2, GachaError::InvalidRarity);
+        require!(category <= 2, GachaError::InvalidCategory);
 
         let record = &mut ctx.accounts.card_record;
         record.mint = ctx.accounts.mint.key();
         record.rarity = rarity;
         record.card_seed = card_seed;
         record.pull_index = pull_index;
+        record.category = category;
 
         let payer_key = ctx.accounts.payer.key();
         let pull_index_bytes = pull_index.to_le_bytes();
@@ -161,6 +164,8 @@ pub mod gacha_er {
 pub enum GachaError {
     #[msg("Rarity byte must be 0 (Common), 1 (Rare), or 2 (Legendary)")]
     InvalidRarity,
+    #[msg("Category byte must be 0 (Life), 1 (Relationship), or 2 (Meme)")]
+    InvalidCategory,
 }
 
 /// 0 = Common, 1 = Rare, 2 = Legendary.
@@ -351,4 +356,8 @@ pub struct CardRecord {
     pub rarity: u8,
     pub card_seed: u8,
     pub pull_index: u32,
+    /// Which client-side deck this came from (0 = Life, 1 = Relationship, 2 = Meme).
+    /// The program never picks a deck itself; this just remembers what the player chose
+    /// so a wallet's minted history can be reconstructed later.
+    pub category: u8,
 }

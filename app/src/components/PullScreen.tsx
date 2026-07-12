@@ -3,7 +3,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { AnchorProvider, Program, web3 } from '@coral-xyz/anchor'
 import idl from '../idl/gacha_er.json'
 import { resolveCard, type CardInfo, type Rarity } from './cardRegistry'
-import { getCategory, type Category } from './categories'
+import { getCategory, categoryToByte, type Category } from './categories'
 import type { NavbarStats } from './Navbar'
 import { OracleCardArt } from './OracleCardArt'
 
@@ -52,11 +52,13 @@ function friendlyRpcError(e: unknown): string {
 
 export function PullScreen({
   category,
+  intention,
   onChangeCategory,
   onReveal,
   onStatsChange,
 }: {
   category: Category
+  intention?: string
   onChangeCategory: () => void
   onReveal: (card: CardInfo, category: Category) => void
   onStatsChange: (stats: NavbarStats | null) => void
@@ -274,7 +276,7 @@ export function PullScreen({
       )
 
       await baseProgram.methods
-        .mintCardNft(lastPull.rarity, lastPull.cardSeed, lastPull.pullIndex)
+        .mintCardNft(lastPull.rarity, lastPull.cardSeed, lastPull.pullIndex, categoryToByte(category))
         .accounts({
           payer: wallet.publicKey,
           mint: mintPda,
@@ -293,7 +295,7 @@ export function PullScreen({
     } finally {
       setMinting(false)
     }
-  }, [baseProgram, wallet.publicKey, lastPull])
+  }, [baseProgram, wallet.publicKey, lastPull, category])
 
   if (!wallet.publicKey) {
     return (
@@ -410,6 +412,9 @@ export function PullScreen({
           <OracleCardArt category={resultCategory ?? category} rarity={result.rarity} className="h-48 w-36 bg-ink shadow-[6px_6px_0_0_#fd1789]" />
           <div className="text-2xl font-black uppercase text-ink">{result.name}</div>
           <p className="text-sm italic text-ink/70">"{result.reading}"</p>
+          {intention && (
+            <p className="border-l-2 border-flare pl-2 text-left text-[11px] font-bold text-ink/70">Wish: {intention}</p>
+          )}
           {latencyMs !== null && (
             <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-ink/60">
               Sealed by MagicBlock VRF · resolved in {latencyMs}ms

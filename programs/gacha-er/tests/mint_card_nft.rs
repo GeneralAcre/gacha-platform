@@ -36,6 +36,7 @@ fn mint_card_nft_creates_a_one_of_one_token() {
     let rarity: u8 = 2;
     let card_seed: u8 = 7;
     let pull_index: u32 = 1;
+    let category: u8 = 1;
 
     let (mint_pda, _) = AnchorPubkey::find_program_address(
         &[
@@ -66,6 +67,7 @@ fn mint_card_nft_creates_a_one_of_one_token() {
             rarity,
             card_seed,
             pull_index,
+            category,
         }
         .data(),
     };
@@ -97,6 +99,7 @@ fn mint_card_nft_creates_a_one_of_one_token() {
     assert_eq!(record.rarity, rarity);
     assert_eq!(record.card_seed, card_seed);
     assert_eq!(record.pull_index, pull_index);
+    assert_eq!(record.category, category);
 }
 
 #[test]
@@ -145,6 +148,7 @@ fn mint_card_nft_rejects_out_of_range_rarity() {
             rarity,
             card_seed,
             pull_index,
+            category: 0,
         }
         .data(),
     };

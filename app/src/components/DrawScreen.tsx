@@ -26,7 +26,7 @@ export function DrawScreen({ onSelect }: { onSelect: (category: Category) => voi
         <p className="mt-4 max-w-xs text-sm font-bold leading-5 text-ink/70 sm:mt-0 sm:text-right">Each sealed card is resolved on-chain. The reveal is yours to keep.</p>
       </header>
 
-      <section className="relative mx-auto mt-8 space-y-8">
+      <section className="relative mx-auto mt-8 grid gap-6 lg:grid-cols-3">
         {CATEGORIES.map((category) => {
           const detail = PACK_DETAILS[category.id]
           return (
@@ -35,39 +35,25 @@ export function DrawScreen({ onSelect }: { onSelect: (category: Category) => voi
               type="button"
               onClick={() => onSelect(category.id)}
               aria-label={`Open the ${category.label} card pack`}
-              className="group mx-auto w-full max-w-5xl overflow-hidden rounded-none border-4 border-ink bg-paper text-left shadow-[5px_5px_0_#18171b] transition hover:-translate-y-0.5 hover:shadow-[7px_7px_0_#18171b] sm:flex sm:items-stretch"
+              className="group flex h-full flex-col gap-4 rounded-none text-left transition hover:-translate-y-0.5"
             >
-              <div className="relative flex h-full min-h-[18rem] w-full items-center justify-center bg-ink sm:w-1/2">
-                <img src={detail.art} alt={`${category.label} card pack`} className="h-full w-full object-cover" />
+              <div className="overflow-hidden rounded-sm border-4 border-ink bg-ink shadow-[5px_5px_0_#18171b]">
+                <div className="aspect-[4/5] w-full overflow-hidden bg-black">
+                  <img src={detail.art} alt={`${category.label} card pack`} className="h-full w-full object-contain object-center" />
+                </div>
               </div>
 
-              <div className="flex flex-1 flex-col gap-4 border-t-4 border-ink p-6 sm:border-t-0 sm:border-l-4 sm:px-8 sm:py-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[.22em] text-ink/60">{category.label} deck</p>
-                    <h2 className="mt-2 text-3xl font-black uppercase leading-tight text-ink">{category.label}</h2>
-                  </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-[.18em] text-ink ${detail.accent}`}>
-                    {category.symbol}
-                  </span>
+              <div className="flex flex-1 flex-col justify-between rounded-sm border-4 border-ink bg-paper p-4 shadow-[5px_5px_0_#18171b] sm:p-5">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[.22em] text-ink/60">{category.label} deck</p>
+                  <h2 className="mt-2 text-2xl font-black uppercase leading-tight text-ink">{category.label}</h2>
                 </div>
 
-                <p className="text-sm leading-6 text-ink/75">{category.description}</p>
+                <p className="mt-4 text-sm leading-6 text-ink/75">{category.description}</p>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-sm border border-ink/30 bg-[#fff1d8] p-4 text-xs font-black uppercase tracking-[.18em] text-ink">
-                    <div className="text-2xl font-bold">9 cards</div>
-                    <div className="mt-1 text-ink/65">3 rarities · 3 per rarity</div>
-                  </div>
-                  <div className="rounded-sm border border-ink/30 bg-[#fff1d8] p-4 text-xs font-black uppercase tracking-[.18em] text-ink">
-                    <div className="text-2xl font-bold">On-chain draw</div>
-                    <div className="mt-1 text-ink/65">Instant reveal, zero gas</div>
-                  </div>
-                </div>
-
-                <div className={`mt-auto border-2 border-ink px-4 py-3 text-sm font-black uppercase tracking-[.14em] text-ink transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1 ${detail.accent}`}>
+                <button className="mt-5 w-full rounded-sm border-2 border-ink bg-ink px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-paper transition-transform group-hover:-translate-y-1">
                   Open {category.label} pack
-                </div>
+                </button>
               </div>
             </button>
           )

@@ -85,7 +85,6 @@ export function PullScreen({
 
   const isFirstPull = pullsDone === 0
   const pityDue = pitySinceGrand !== null && pitySinceGrand >= PITY_WARNING_AT
-  const pityPct = pitySinceGrand !== null ? Math.min(100, (pitySinceGrand / PITY_THRESHOLD) * 100) : 0
   const rarityStyle = result ? RARITY_STYLE[result.rarity] : null
   const needsFunding = setupLamports !== null && setupLamports < MIN_SETUP_LAMPORTS
 
@@ -369,92 +368,87 @@ export function PullScreen({
 
       {delegated && (
         <div className="flex w-full flex-col items-center gap-3">
-          {pullsDone !== null && (
-            <div className="w-full">
-              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-ink/70">
-                <span>Truths asked: {pullsDone}</span>
-                <span>Pity {pitySinceGrand ?? 0}/{PITY_THRESHOLD}</span>
-              </div>
-              <div className="mt-1 h-2 w-full border-2 border-ink bg-paper">
-                <div className="h-full bg-flare transition-all" style={{ width: `${pityPct}%` }} />
-              </div>
-            </div>
-          )}
-          {isFirstPull && (
+          {isFirstPull && !result && (
             <div className="w-full border-4 border-flare bg-flare/10 p-2 text-center">
               <p className="text-xs font-black uppercase tracking-widest text-flare">
                 First truth's free — no payment required
               </p>
             </div>
           )}
-          {pityDue && (
+          {pityDue && !result && (
             <div className="w-full border-4 border-paper bg-paper/10 p-2 text-center">
               <p className="text-xs font-black uppercase tracking-widest text-paper">
                 The ledger tips in your favor — {pitySinceGrand}/{PITY_THRESHOLD}. A Grand Revelation is due.
               </p>
             </div>
           )}
-          <div className="w-full border-4 border-ink bg-paper p-3 shadow-[6px_6px_0_#18171b]">
-            <div className={`mx-auto w-40 transition-transform duration-700 ${pulling ? 'animate-pulse scale-95' : 'hover:-translate-y-1'}`}>
-              <OracleCardArt category={category} rarity="minor" className="w-full drop-shadow-[5px_5px_0_#fd1789]" />
-            </div>
+
+          <div
+            className={`w-full border-4 bg-paper p-3 text-center shadow-[6px_6px_0_#18171b] ${
+              result && rarityStyle ? rarityStyle.ring : 'border-ink'
+            }`}
+          >
+            {result && rarityStyle ? (
+              <div className="animate-[reveal_500ms_ease-out] flex flex-col items-center gap-2 pb-1">
+                {resultCategory && (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-ink/60">
+                    Your draw · {getCategory(resultCategory).label}
+                  </span>
+                )}
+                <span className={`inline-block px-2 py-1 text-xs font-black uppercase tracking-widest ${rarityStyle.badge}`}>
+                  {rarityStyle.label}
+                </span>
+                <OracleCardArt category={resultCategory ?? category} rarity={result.rarity} className="h-48 w-36 bg-ink shadow-[6px_6px_0_0_#fd1789]" />
+                <div className="text-2xl font-black uppercase text-ink">{result.name}</div>
+                <p className="text-sm italic text-ink/70">"{result.reading}"</p>
+                {intention && (
+                  <p className="border-l-2 border-flare pl-2 text-left text-[11px] font-bold text-ink/70">Wish: {intention}</p>
+                )}
+                {latencyMs !== null && (
+                  <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-ink/60">
+                    Sealed by MagicBlock VRF · resolved in {latencyMs}ms
+                  </p>
+                )}
+                {lastPull && (
+                  <div className="mt-2 w-full">
+                    {mintedPullIndex === lastPull.pullIndex ? (
+                      <a
+                        href={`https://explorer.solana.com/address/${mintedAddress}?cluster=devnet`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex w-full items-center justify-center gap-2 border-4 border-flare bg-flare/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-flare active:translate-y-1"
+                      >
+                        ✦ Minted — View on Explorer ↗
+                      </a>
+                    ) : (
+                      <button
+                        onClick={handleMint}
+                        disabled={minting}
+                        className="w-full border-4 border-ink bg-ink px-4 py-3 text-xs font-black uppercase tracking-widest text-paper active:translate-y-1 disabled:opacity-50"
+                      >
+                        {minting ? 'Minting...' : 'Claim as NFT'}
+                      </button>
+                    )}
+                    {mintError && (
+                      <p className="mt-2 w-full [overflow-wrap:anywhere] text-[11px] font-bold text-red-500">{mintError}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className={`mx-auto w-40 transition-transform duration-700 ${pulling ? 'animate-pulse scale-95' : 'hover:-translate-y-1'}`}>
+                <OracleCardArt category={category} rarity="minor" className="w-full drop-shadow-[5px_5px_0_#fd1789]" />
+              </div>
+            )}
+
             <button
               onClick={handlePull}
               disabled={pulling}
               className={`mt-4 w-full border-4 px-8 py-4 text-xl font-black uppercase active:translate-y-1 disabled:opacity-50 ${getCategory(category).accent}`}
             >
-              {pulling ? 'Consulting Obsession...' : isFirstPull ? 'Draw Revelation - Free' : 'Reveal Your Fortune'}
+              {pulling ? 'Consulting Obsession...' : result ? 'Draw Again' : isFirstPull ? 'Draw Revelation - Free' : 'Reveal Your Fortune'}
             </button>
           </div>
-        </div>
-      )}
-
-      {result && rarityStyle && (
-        <div className={`animate-[reveal_500ms_ease-out] flex w-full flex-col items-center gap-2 border-4 ${rarityStyle.ring} bg-paper p-4 text-center shadow-[6px_6px_0_#18171b]`}>
-          {resultCategory && (
-            <span className="text-[10px] font-black uppercase tracking-widest text-ink/60">
-              Your draw · {getCategory(resultCategory).label}
-            </span>
-          )}
-          <span className={`inline-block px-2 py-1 text-xs font-black uppercase tracking-widest ${rarityStyle.badge}`}>
-            {rarityStyle.label}
-          </span>
-          <OracleCardArt category={resultCategory ?? category} rarity={result.rarity} className="h-48 w-36 bg-ink shadow-[6px_6px_0_0_#fd1789]" />
-          <div className="text-2xl font-black uppercase text-ink">{result.name}</div>
-          <p className="text-sm italic text-ink/70">"{result.reading}"</p>
-          {intention && (
-            <p className="border-l-2 border-flare pl-2 text-left text-[11px] font-bold text-ink/70">Wish: {intention}</p>
-          )}
-          {latencyMs !== null && (
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-ink/60">
-              Sealed by MagicBlock VRF · resolved in {latencyMs}ms
-            </p>
-          )}
-          {lastPull && (
-            <div className="mt-2 w-full">
-              {mintedPullIndex === lastPull.pullIndex ? (
-                <a
-                  href={`https://explorer.solana.com/address/${mintedAddress}?cluster=devnet`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex w-full items-center justify-center gap-2 border-4 border-flare bg-flare/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-flare active:translate-y-1"
-                >
-                  ✦ Minted — View on Explorer ↗
-                </a>
-              ) : (
-                <button
-                  onClick={handleMint}
-                  disabled={minting}
-                  className="w-full border-4 border-ink bg-ink px-4 py-3 text-xs font-black uppercase tracking-widest text-paper active:translate-y-1 disabled:opacity-50"
-                >
-                  {minting ? 'Minting...' : 'Claim as NFT'}
-                </button>
-              )}
-              {mintError && (
-                <p className="mt-2 w-full [overflow-wrap:anywhere] text-[11px] font-bold text-red-500">{mintError}</p>
-              )}
-            </div>
-          )}
         </div>
       )}
 

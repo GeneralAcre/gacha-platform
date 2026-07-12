@@ -6,6 +6,9 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   android: {
     allowMixedContent: false,
+    // wallet-standard-mobile refuses to register MWA in a WebView unless the
+    // UA marks it as a trusted mobile web shell (see isSolanaMobileWebShell).
+    appendUserAgent: 'Solana Mobile Web Shell',
   },
 };
 

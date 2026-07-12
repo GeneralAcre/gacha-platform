@@ -26,7 +26,7 @@ export function DrawScreen({ onSelect }: { onSelect: (category: Category) => voi
         </div>
       </header>
 
-      <section className="relative mx-auto mt-8 grid gap-6 lg:grid-cols-3">
+      <section className="relative mx-auto mt-8 grid gap-6 grid-cols-1 lg:grid-cols-3">
         {CATEGORIES.map((category) => {
           const detail = PACK_DETAILS[category.id]
           return (
@@ -35,10 +35,10 @@ export function DrawScreen({ onSelect }: { onSelect: (category: Category) => voi
               type="button"
               onClick={() => onSelect(category.id)}
               aria-label={`Open the ${category.label} card pack`}
-              className="group flex h-full flex-col gap-4 rounded-none text-left transition hover:-translate-y-0.5"
+              className="group flex w-full min-w-0 h-full flex-col gap-4 overflow-hidden rounded-none text-left transition hover:-translate-y-0.5"
             >
               <div className="overflow-hidden rounded-sm border-4 border-ink bg-ink shadow-[5px_5px_0_#18171b]">
-                <div className="aspect-[4/5] w-full overflow-hidden bg-black">
+                <div className="h-64 w-full overflow-hidden bg-black md:h-auto md:aspect-[4/5]">
                   <img src={detail.art} alt={`${category.label} card pack`} className="h-full w-full object-contain object-center" />
                 </div>
               </div>
@@ -56,7 +56,7 @@ export function DrawScreen({ onSelect }: { onSelect: (category: Category) => voi
 
                 <p className="mt-4 text-sm leading-6 text-ink/75">{category.description}</p>
 
-                <button className="mt-5 w-full whitespace-nowrap rounded-sm border-2 border-ink bg-ink px-2 py-3 text-[10px] font-black uppercase tracking-[.08em] text-paper transition-transform group-hover:-translate-y-1">
+                <button className="mt-5 w-full break-words whitespace-normal rounded-sm border-2 border-ink bg-ink px-3 py-3 text-[10px] font-black uppercase tracking-[.08em] text-paper text-center transition-transform group-hover:-translate-y-1">
                   Open {category.label} pack · {PACK_PRICE_SOL[category.id].toFixed(3)} SOL
                 </button>
               </div>

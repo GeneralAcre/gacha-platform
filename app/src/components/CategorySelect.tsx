@@ -88,7 +88,7 @@ export function CategorySelect({
       </section>
 
       <section className="mt-10">
-        <div className="grid gap-5 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
           {CATEGORIES.map((category) => (
             <button
               key={category.id}
@@ -96,8 +96,8 @@ export function CategorySelect({
               className="group relative mx-auto aspect-[1054/1492] w-full max-w-[23rem] overflow-hidden border-4 border-ink bg-ink text-left shadow-[7px_7px_0_#18171b] transition-transform hover:-translate-y-1 active:translate-y-1 active:shadow-none"
             >
               <img src={DECK_ART[category.id]} alt={`${category.label} deck`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/95 via-ink/50 to-transparent px-5 pb-5 pt-16 text-paper">
-                <p className="text-2xl font-black uppercase leading-none md:text-3xl">{category.label}</p>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/95 via-ink/50 to-transparent px-3 pb-3 pt-10 text-paper md:px-5 md:pb-5 md:pt-16">
+                <p className="text-lg font-black uppercase leading-none md:text-3xl">{category.label}</p>
                 <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-paper/80">Choose deck +</p>
               </div>
             </button>
@@ -115,8 +115,8 @@ export function CategorySelect({
                 🔒 Locked
               </span>
             </div>
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/95 via-ink/50 to-transparent px-5 pb-5 pt-16 text-paper">
-              <p className="text-2xl font-black uppercase leading-none md:text-3xl">Teller</p>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/95 via-ink/50 to-transparent px-3 pb-3 pt-10 text-paper md:px-5 md:pb-5 md:pt-16">
+              <p className="text-lg font-black uppercase leading-none md:text-3xl">Teller</p>
               <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-paper/80">Madame Obsession answers — coming soon</p>
             </div>
           </div>

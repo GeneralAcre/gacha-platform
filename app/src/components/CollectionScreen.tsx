@@ -81,23 +81,21 @@ export function CollectionScreen() {
                   <span className="text-ink/55">({items.length} cards)</span>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
                   {items.map(({ category, card, index }) => (
                     <article
                       key={`${category}-${card.rarity}-${card.name}`}
                       onClick={() => setActiveIndex(index)}
-                      className="flex cursor-pointer gap-4 border-4 border-ink bg-paper p-3 text-left shadow-[5px_5px_0_#18171b] transition hover:-translate-y-0.5 hover:shadow-[7px_7px_0_#18171b]"
+                      className="flex cursor-pointer flex-col items-center gap-3 border-4 border-ink bg-paper p-3 text-center shadow-[5px_5px_0_#18171b] transition hover:-translate-y-0.5 hover:shadow-[7px_7px_0_#18171b]"
                     >
                       <img
                         src={card.image}
                         alt={`${card.name} card art`}
-                        className={`h-36 w-24 shrink-0 border-4 bg-ink object-cover ${RARITY_RING[card.rarity]}`}
+                        className={`h-36 w-full rounded-sm border-4 bg-ink object-cover ${RARITY_RING[card.rarity]}`}
                       />
                       <div className="min-w-0">
                         <p className="text-[10px] font-black uppercase tracking-widest text-flare">{RARITY_LABEL[card.rarity]}</p>
                         <h3 className="mt-2 text-lg font-black uppercase leading-tight text-ink">{card.name}</h3>
-                        <p className="mt-2 text-xs italic leading-5 text-ink/70">"{card.reading}"</p>
-                        <p className="mt-2 text-[11px] leading-5 text-ink/70">Meaning: {card.meaning}</p>
                       </div>
                     </article>
                   ))}

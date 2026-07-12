@@ -395,8 +395,8 @@ export function PullScreen({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-5 px-4 py-7 md:py-10">
-      <div className="flex w-full flex-col gap-4 border-b-2 border-ink/30 pb-3 md:flex-row md:items-center md:justify-between">
+    <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-0 px-4 py-6 md:py-8">
+      <div className="flex w-full flex-col gap-2 border-b-2 border-ink/30 pb-1 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-ink/60">Active channel</p>
           <p className="text-lg font-black uppercase text-ink">{getCategory(category).label}</p>
@@ -441,7 +441,7 @@ export function PullScreen({
           <button
             onClick={handleSetup}
             disabled={delegating}
-            className={`mt-4 w-full rounded-2xl border-4 px-6 py-4 text-base font-black uppercase tracking-widest text-ink ${getCategory(category).accent} active:translate-y-1 disabled:opacity-50`}
+            className="mt-4 w-full rounded-2xl border-4 border-ink bg-flare px-6 py-4 text-base font-black uppercase tracking-widest text-paper active:translate-y-1 disabled:opacity-50"
           >
             {delegating ? 'Opening...' : 'Start drawing'}
           </button>
@@ -563,7 +563,7 @@ export function PullScreen({
             <button
               onClick={handlePull}
               disabled={pulling}
-              className={`mt-6 w-full rounded-[2rem] border-4 px-8 py-4 text-xl font-black uppercase active:translate-y-1 disabled:opacity-50 ${getCategory(category).accent}`}
+              className="mt-4 mx-auto w-[min(90%,18rem)] rounded-[2rem] border-4 border-ink bg-flare px-6 py-3 text-lg font-black uppercase text-paper active:translate-y-1 disabled:opacity-50 md:px-8 md:py-5 md:text-xl"
             >
               {pulling ? 'Consulting Obsession...' : result ? 'Draw Again' : 'Draw'}
             </button>

@@ -170,16 +170,20 @@ export function ProfileScreen() {
           <p className="mt-2 text-sm text-ink/65">Draw a fortune and claim it as an NFT to begin your collection.</p>
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((entry) => (
             <a
               key={entry.mint}
               href={`https://explorer.solana.com/address/${entry.mint}?cluster=devnet`}
               target="_blank"
               rel="noreferrer"
-              className="flex gap-4 border-4 border-ink bg-paper p-3 shadow-[5px_5px_0_#18171b] transition hover:-translate-y-0.5 hover:shadow-[7px_7px_0_#18171b]"
+              className="flex flex-col gap-4 border-4 border-ink bg-paper p-3 shadow-[5px_5px_0_#18171b] transition hover:-translate-y-0.5 hover:shadow-[7px_7px_0_#18171b] sm:flex-row"
             >
-              <img src={entry.card.image} alt={`${entry.card.name} card art`} className="h-36 w-24 shrink-0 border-2 border-ink bg-ink object-cover" />
+              <img
+                src={entry.card.image}
+                alt={`${entry.card.name} card art`}
+                className="h-36 w-full max-w-[6rem] shrink-0 rounded-sm border-2 border-ink bg-ink object-cover sm:w-24"
+              />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="text-[10px] font-black uppercase tracking-widest text-flare">

@@ -19,6 +19,7 @@ interface PlayerAccount {
 const PROGRAM_ID = new web3.PublicKey('4re47fFt4ty2BkNS9NuhBUqDSbGZYhydkt42f4c9E7zv')
 const TOKEN_PROGRAM_ID = new web3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
 const ASSOCIATED_TOKEN_PROGRAM_ID = new web3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+const DELEGATION_PROGRAM_ID = new web3.PublicKey('DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh')
 
 // MagicBlock devnet ER endpoint (Asia region — swap for eu/us if you prefer)
 const ER_ENDPOINT = 'https://devnet-as.magicblock.app'
@@ -168,13 +169,22 @@ export function PullScreen({
           /* already initialized — fine */
         })
 
-      await baseProgram.methods
-        .delegatePlayer()
-        .accounts({
-          payer: wallet.publicKey,
-          pda: playerPda,
-        })
-        .rpc()
+      // Only delegate if it isn't already — re-delegating an account the delegation
+      // program already owns fails with "instruction modified data of an account it
+      // does not own" (a confusing, unrecoverable-looking error for something that's
+      // actually just "you're already set up").
+      const playerAccountInfo = await connection.getAccountInfo(playerPda)
+      const alreadyDelegated = playerAccountInfo?.owner.equals(DELEGATION_PROGRAM_ID) ?? false
+
+      if (!alreadyDelegated) {
+        await baseProgram.methods
+          .delegatePlayer()
+          .accounts({
+            payer: wallet.publicKey,
+            pda: playerPda,
+          })
+          .rpc()
+      }
 
       setDelegated(true)
 

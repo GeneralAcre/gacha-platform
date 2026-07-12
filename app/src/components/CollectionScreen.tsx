@@ -41,12 +41,10 @@ export function CollectionScreen() {
     if (activeIndex === null) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setActiveIndex(null)
-      if (event.key === 'ArrowRight') setActiveIndex((index) => (index === null ? index : (index + 1) % cards.length))
-      if (event.key === 'ArrowLeft') setActiveIndex((index) => (index === null ? index : (index - 1 + cards.length) % cards.length))
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activeIndex, cards.length])
+  }, [activeIndex])
 
   const active = activeIndex === null ? null : cards[activeIndex]
 
@@ -99,6 +97,7 @@ export function CollectionScreen() {
                         <p className="text-[10px] font-black uppercase tracking-widest text-flare">{RARITY_LABEL[card.rarity]}</p>
                         <h3 className="mt-2 text-lg font-black uppercase leading-tight text-ink">{card.name}</h3>
                         <p className="mt-2 text-xs italic leading-5 text-ink/70">"{card.reading}"</p>
+                        <p className="mt-2 text-[11px] leading-5 text-ink/70">Meaning: {card.meaning}</p>
                       </div>
                     </article>
                   ))}
@@ -140,24 +139,10 @@ export function CollectionScreen() {
               <p className="mt-3 text-sm italic leading-6 text-ink/70">"{active.card.reading}"</p>
               <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-ink/55">{getCategory(active.category).label} deck</p>
 
-              <div className="mt-5 flex items-center justify-between gap-2 mt-auto pt-5">
-                <button
-                  type="button"
-                  onClick={() => setActiveIndex((index) => (index === null ? index : (index - 1 + cards.length) % cards.length))}
-                  className="border-4 border-ink bg-ink px-2 py-2 text-[10px] font-black uppercase tracking-widest text-paper shadow-[3px_3px_0_#18171b] active:translate-y-0.5 active:shadow-none px-3 text-xs"
-                >
-                  ← Prev
-                </button>
-                <p className="text-[10px] font-black uppercase tracking-widest text-ink/55">
-                  {activeIndex! + 1} / {cards.length}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setActiveIndex((index) => (index === null ? index : (index + 1) % cards.length))}
-                  className="border-4 border-ink bg-ink px-2 py-2 text-[10px] font-black uppercase tracking-widest text-paper shadow-[3px_3px_0_#18171b] active:translate-y-0.5 active:shadow-none px-3 text-xs"
-                >
-                  Next →
-                </button>
+              <div className="mt-5 pt-5 border-t border-ink/10">
+                <p className="text-xs font-black uppercase tracking-widest text-ink/55">Rarity: {RARITY_LABEL[active.card.rarity]}</p>
+                <p className="mt-3 text-sm leading-6 text-ink/70">Meaning: {active.card.meaning}</p>
+                <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-ink/55">{getCategory(active.category).label} deck</p>
               </div>
             </div>
           </div>

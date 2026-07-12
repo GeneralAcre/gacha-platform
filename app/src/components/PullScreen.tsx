@@ -178,6 +178,35 @@ export function PullScreen({
     []
   )
 
+  // Returning players are already initialized + delegated on-chain; detect that and
+  // skip the "Start drawing" setup step (and its wallet popups) entirely.
+  useEffect(() => {
+    if (!wallet.publicKey || !playerPda || !erProgram || delegated) return
+    let cancelled = false
+    connection
+      .getAccountInfo(playerPda)
+      .then(async (info) => {
+        if (cancelled || !info || !info.owner.equals(DELEGATION_PROGRAM_ID)) return
+        setDelegated(true)
+        try {
+          const account = await playerAccountNamespace(erProgram).player.fetch(playerPda)
+          if (!cancelled) {
+            setPullsDone(account.pullsDone)
+            setPitySinceGrand(account.pullsSinceLegendary)
+          }
+        } catch {
+          if (!cancelled) {
+            setPullsDone(0)
+            setPitySinceGrand(0)
+          }
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [connection, wallet.publicKey, playerPda, erProgram, delegated, playerAccountNamespace])
+
   const handleSetup = useCallback(async () => {
     if (!baseProgram || !erProgram || !wallet.publicKey || !playerPda) return
     setDelegating(true)

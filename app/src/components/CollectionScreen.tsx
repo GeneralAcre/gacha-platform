@@ -49,11 +49,11 @@ export function CollectionScreen() {
   const active = activeIndex === null ? null : cards[activeIndex]
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-7 px-6 py-10">
+    <div className="mx-auto w-full max-w-6xl px-4 py-7 md:px-6 md:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-4 border-ink pb-5">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-ink/65">The complete set</p>
-          <h1 className="mt-2 text-4xl font-black uppercase text-ink text-5xl">Fortune card collection</h1>
+          <h1 className="mt-2 text-4xl font-black uppercase text-ink md:text-5xl">Fortune card collection</h1>
         </div>
         <p className="max-w-xs text-sm text-ink/70">Every card that can emerge from Madame Obsession's sealed gacha decks.</p>
       </div>
@@ -63,7 +63,7 @@ export function CollectionScreen() {
           <div className="flex flex-wrap items-end justify-between gap-4 border-b-4 border-ink pb-5">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-ink/65">{categoryInfo.label} deck</p>
-              <h2 className="mt-2 text-3xl font-black uppercase text-ink text-4xl">{categoryInfo.description}</h2>
+              <h2 className="mt-2 text-3xl font-black uppercase text-ink md:text-4xl">{categoryInfo.description}</h2>
             </div>
             <span className="rounded-full border-2 border-ink bg-paper px-4 py-1 text-xs font-black uppercase tracking-[0.22em] text-ink shadow-[3px_3px_0_#18171b]">
               {categoryInfo.symbol}
@@ -110,11 +110,11 @@ export function CollectionScreen() {
 
       {active && (
         <div
-          className="fixed inset-0 z-50 flex overflow-y-auto bg-ink/80 p-3 items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex overflow-y-auto bg-ink/80 p-3 items-center justify-center md:p-4"
           onClick={() => setActiveIndex(null)}
         >
           <div
-            className="relative my-auto flex w-full max-w-lg flex-col gap-4 border-4 border-ink bg-paper p-4 shadow-[8px_8px_0_#18171b] flex-row gap-5 p-6"
+            className="relative my-auto flex w-full max-w-lg flex-col gap-4 border-4 border-ink bg-paper p-4 shadow-[8px_8px_0_#18171b] md:flex-row md:gap-5 md:p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <button

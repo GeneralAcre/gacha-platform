@@ -137,11 +137,11 @@ export function ProfileScreen() {
   const walletAddress = wallet.publicKey?.toBase58() ?? null
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 px-6 py-10">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 md:px-6 md:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-4 border-ink pb-5">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-ink/65">Player profile</p>
-          <h1 className="mt-2 text-4xl font-black uppercase text-ink text-5xl">My fortune cards</h1>
+          <h1 className="mt-2 text-4xl font-black uppercase text-ink md:text-5xl">My fortune cards</h1>
           {walletAddress ? (
             <p className="mt-2 font-mono text-xs text-ink/65">
               Connected · {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}

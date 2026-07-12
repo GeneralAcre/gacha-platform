@@ -1,5 +1,5 @@
 import { CATEGORIES, type Category } from './categories'
-import { DRAW_PRICE_SOL } from './cardRegistry'
+import { PACK_PRICE_SOL } from './cardRegistry'
 
 const PACK_DETAILS: Record<Category, { art: string; accent: string }> = {
   life: {
@@ -18,11 +18,11 @@ const PACK_DETAILS: Record<Category, { art: string; accent: string }> = {
 
 export function DrawScreen({ onSelect }: { onSelect: (category: Category) => void }) {
   return (
-    <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 px-6 py-10">
+    <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 md:px-6 md:py-10">
       <header className="relative border-b-4 border-ink pb-5">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-ink/65">Obsession gacha terminal · 03 decks live</p>
-          <h1 className="mt-2 text-4xl font-black uppercase leading-[.86] text-ink text-6xl">Pick your next omen</h1>
+          <h1 className="mt-2 text-4xl font-black uppercase leading-[.86] text-ink md:text-6xl">Pick your next omen</h1>
         </div>
       </header>
 
@@ -43,21 +43,21 @@ export function DrawScreen({ onSelect }: { onSelect: (category: Category) => voi
                 </div>
               </div>
 
-              <div className="flex flex-1 flex-col justify-between rounded-sm border-4 border-ink bg-paper p-4 shadow-[5px_5px_0_#18171b] p-5">
+              <div className="flex flex-1 flex-col justify-between rounded-sm border-4 border-ink bg-paper p-4 shadow-[5px_5px_0_#18171b] md:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[.22em] text-ink/60">{category.label} deck</p>
                     <h2 className="mt-2 text-2xl font-black uppercase leading-tight text-ink">{category.label}</h2>
                   </div>
                   <span className="shrink-0 rounded-sm border-2 border-ink bg-flare px-2 py-1 text-[10px] font-black uppercase tracking-widest text-paper">
-                    {DRAW_PRICE_SOL.toFixed(3)} SOL / draw
+                    {PACK_PRICE_SOL[category.id].toFixed(3)} SOL / draw
                   </span>
                 </div>
 
                 <p className="mt-4 text-sm leading-6 text-ink/75">{category.description}</p>
 
-                <button className="mt-5 w-full rounded-sm border-2 border-ink bg-ink px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-paper transition-transform group-hover:-translate-y-1">
-                  Open {category.label} pack · {DRAW_PRICE_SOL.toFixed(3)} SOL
+                <button className="mt-5 w-full whitespace-nowrap rounded-sm border-2 border-ink bg-ink px-2 py-3 text-[10px] font-black uppercase tracking-[.08em] text-paper transition-transform group-hover:-translate-y-1">
+                  Open {category.label} pack · {PACK_PRICE_SOL[category.id].toFixed(3)} SOL
                 </button>
               </div>
             </button>

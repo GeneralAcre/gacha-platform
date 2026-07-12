@@ -1,6 +1,6 @@
 export function LandingPage({ onStart }: { onStart: () => void }) {
   return (
-    <section className="relative flex min-h-svh w-full items-end justify-center overflow-hidden bg-ink px-5 py-10 px-8 py-14">
+    <section className="relative flex min-h-svh w-full items-end justify-center overflow-hidden bg-ink px-5 py-10 md:px-8 md:py-14">
       <div className="absolute inset-0">
         <img
           src="/obsession-landing.png"

@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { AnchorProvider, Program, web3 } from '@coral-xyz/anchor'
 import idl from '../idl/gacha_er.json'
-import { resolveCard, CARD_IMAGE, SPECIAL_CARD, DRAW_PRICE_SOL, type CardInfo, type Rarity } from './cardRegistry'
+import { resolveCard, CARD_IMAGE, SPECIAL_CARD, PACK_PRICE_SOL, type CardInfo, type Rarity } from './cardRegistry'
 import { getCategory, categoryToByte, type Category } from './categories'
 import { OracleCardArt } from './OracleCardArt'
 
@@ -395,7 +395,7 @@ export function PullScreen({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-5 px-4 py-7 py-10">
+    <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-5 px-4 py-7 md:py-10">
       <div className="flex w-full flex-col gap-4 border-b-2 border-ink/30 pb-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-ink/60">Active channel</p>
@@ -453,7 +453,7 @@ export function PullScreen({
           {!result && (
             <div className="w-full border-4 border-flare bg-flare/10 p-2 text-center">
               <p className="text-xs font-black uppercase tracking-widest text-flare">
-                Draw price {DRAW_PRICE_SOL.toFixed(3)} SOL — waived while Obsession runs on devnet.
+                Draw price {PACK_PRICE_SOL[category].toFixed(3)} SOL — waived while Obsession runs on devnet.
               </p>
             </div>
           )}
@@ -471,13 +471,26 @@ export function PullScreen({
             }`}
           >
             {result && rarityStyle ? (
-              <div className="animate-[reveal_500ms_ease-out] flex flex-col items-center gap-4 pb-1 text-center flex-row items-start gap-5 text-left">
-                <OracleCardArt
-                  category={resultCategory ?? category}
-                  rarity={result.rarity}
-                  className="h-48 w-36 shrink-0 drop-shadow-[6px_6px_0_0_#fd1789] mx-0"
-                />
-                <div className="flex min-w-0 flex-1 flex-col items-center gap-2 items-start">
+              <div className="flex flex-col items-center gap-4 pb-1 text-center md:flex-row md:items-start md:gap-5 md:text-left">
+                <div className="mx-0 shrink-0 [perspective:1200px]">
+                  <div className="relative h-48 w-36 animate-[card-flip_950ms_cubic-bezier(.3,.9,.35,1.08)_both] [transform-style:preserve-3d]">
+                    <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                      <OracleCardArt
+                        category={resultCategory ?? category}
+                        rarity={result.rarity}
+                        className="h-full w-full"
+                      />
+                    </div>
+                    <div className="absolute inset-0 animate-[card-glow_2.4s_ease-in-out_1s_infinite] [backface-visibility:hidden]">
+                      <img
+                        src={CARD_IMAGE[resultCategory ?? category]}
+                        alt={result.name}
+                        className="h-full w-full rounded-xl border-2 border-ink object-cover drop-shadow-[6px_6px_0_#fd1789]"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col items-center gap-2 md:items-start animate-[rise-in_500ms_ease-out_450ms_both]">
                   {resultCategory && (
                     <span className="text-[10px] font-black uppercase tracking-widest text-ink/60">
                       Your draw · {getCategory(resultCategory).label}

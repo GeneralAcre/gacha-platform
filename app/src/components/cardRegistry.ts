@@ -181,6 +181,10 @@ const POOLS: Record<Category, Pool> = {
 
 export const RARITY_MAP: Rarity[] = ['minor', 'major', 'grand']
 
+// Display price per draw. On-chain draws are currently free on devnet; this is the
+// advertised price shown across the UI (waived until a base-layer payment design ships).
+export const DRAW_PRICE_SOL = 0.001
+
 // One illustrated card face per deck; rarity is conveyed by the badge/ring around it, not separate art.
 export const CARD_IMAGE: Record<Category, string> = {
   life: '/cards/Card-Life.png',

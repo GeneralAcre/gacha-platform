@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { AnchorProvider, Program, web3 } from '@coral-xyz/anchor'
 import idl from '../idl/gacha_er.json'
-import { resolveCard, CARD_IMAGE, SPECIAL_CARD, type CardInfo, type Rarity } from './cardRegistry'
+import { resolveCard, CARD_IMAGE, SPECIAL_CARD, DRAW_PRICE_SOL, type CardInfo, type Rarity } from './cardRegistry'
 import { getCategory, categoryToByte, type Category } from './categories'
 import { OracleCardArt } from './OracleCardArt'
 
@@ -453,7 +453,7 @@ export function PullScreen({
           {!result && (
             <div className="w-full border-4 border-flare bg-flare/10 p-2 text-center">
               <p className="text-xs font-black uppercase tracking-widest text-flare">
-                Sealed on-chain draws — free while Obsession runs on devnet.
+                Draw price {DRAW_PRICE_SOL.toFixed(3)} SOL — waived while Obsession runs on devnet.
               </p>
             </div>
           )}
@@ -539,7 +539,11 @@ export function PullScreen({
               </div>
             ) : (
               <div className={`mx-auto w-40 transition-transform duration-700 ${pulling ? 'animate-pulse scale-95' : 'hover:-translate-y-1'}`}>
-                <OracleCardArt category={category} rarity="minor" className="w-full drop-shadow-[5px_5px_0_#fd1789]" />
+                <img
+                  src={CARD_IMAGE[category]}
+                  alt={`${getCategory(category).label} card pack`}
+                  className="w-full rounded-xl border-2 border-ink object-contain drop-shadow-[5px_5px_0_#fd1789]"
+                />
               </div>
             )}
 

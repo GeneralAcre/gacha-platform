@@ -1,4 +1,5 @@
 import { CATEGORIES, type Category } from './categories'
+import { DRAW_PRICE_SOL } from './cardRegistry'
 
 const PACK_DETAILS: Record<Category, { art: string; accent: string }> = {
   life: {
@@ -43,15 +44,20 @@ export function DrawScreen({ onSelect }: { onSelect: (category: Category) => voi
               </div>
 
               <div className="flex flex-1 flex-col justify-between rounded-sm border-4 border-ink bg-paper p-4 shadow-[5px_5px_0_#18171b] p-5">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[.22em] text-ink/60">{category.label} deck</p>
-                  <h2 className="mt-2 text-2xl font-black uppercase leading-tight text-ink">{category.label}</h2>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[.22em] text-ink/60">{category.label} deck</p>
+                    <h2 className="mt-2 text-2xl font-black uppercase leading-tight text-ink">{category.label}</h2>
+                  </div>
+                  <span className="shrink-0 rounded-sm border-2 border-ink bg-flare px-2 py-1 text-[10px] font-black uppercase tracking-widest text-paper">
+                    {DRAW_PRICE_SOL.toFixed(3)} SOL / draw
+                  </span>
                 </div>
 
                 <p className="mt-4 text-sm leading-6 text-ink/75">{category.description}</p>
 
                 <button className="mt-5 w-full rounded-sm border-2 border-ink bg-ink px-4 py-3 text-xs font-black uppercase tracking-[.14em] text-paper transition-transform group-hover:-translate-y-1">
-                  Open {category.label} pack
+                  Open {category.label} pack · {DRAW_PRICE_SOL.toFixed(3)} SOL
                 </button>
               </div>
             </button>

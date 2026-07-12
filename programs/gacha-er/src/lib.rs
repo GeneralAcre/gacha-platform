@@ -9,13 +9,13 @@ use ephemeral_rollups_sdk::cpi::DelegateConfig;
 
 declare_id!("4re47fFt4ty2BkNS9NuhBUqDSbGZYhydkt42f4c9E7zv");
 
-pub const PLAYER_SEED: &[u8] = b"player";
+// v2: the Player struct grew by one byte (last_special) after some 18-byte v1
+// accounts already existed on devnet; a new seed gives everyone a fresh,
+// correctly-sized account instead of failing to deserialize the old ones.
+pub const PLAYER_SEED: &[u8] = b"player_v2";
 pub const CARD_MINT_SEED: &[u8] = b"card_mint";
 pub const CARD_RECORD_SEED: &[u8] = b"card_record";
 pub const TREASURY_SEED: &[u8] = b"treasury";
-
-// 0.001 SOL per draw on devnet
-pub const DRAW_PRICE_LAMPORTS: u64 = 1_000_000;
 
 // Pull the pity lever after this many pulls without a Legendary
 pub const PITY_THRESHOLD: u32 = 50;
@@ -56,17 +56,10 @@ pub mod gacha_er {
     pub fn pull_gacha(ctx: Context<PullGachaCtx>, client_seed: u8) -> Result<()> {
         msg!("Requesting VRF randomness for pull...");
 
-        anchor_lang::system_program::transfer(
-            CpiContext::new(
-                ctx.accounts.system_program.key(),
-                anchor_lang::system_program::Transfer {
-                    from: ctx.accounts.payer.to_account_info(),
-                    to: ctx.accounts.treasury.to_account_info(),
-                },
-            ),
-            DRAW_PRICE_LAMPORTS,
-        )?;
-
+        // No lamport transfer here: this instruction runs on the ER, where the payer's
+        // wallet account is an undelegated clone — the ER rejects any transaction that
+        // debits it ("This account may not be used to pay transaction fees"). Draw
+        // pricing needs a base-layer design (e.g. prepaid credits) instead.
         let ix = create_request_high_priority_scoped_randomness_ix(RequestRandomnessParams {
             payer: ctx.accounts.payer.key(),
             oracle_queue: ctx.accounts.oracle_queue.key(),
@@ -336,6 +329,8 @@ pub struct Initialize<'info> {
         bump
     )]
     pub player: Account<'info, Player>,
+    /// CHECK: program-derived lamport sink with no data (space = 0); the seeds
+    /// constraint pins it to the one canonical treasury PDA.
     #[account(
         init_if_needed,
         payer = payer,
@@ -366,14 +361,11 @@ pub struct PullGachaCtx<'info> {
     pub payer: Signer<'info>,
     #[account(mut, seeds = [PLAYER_SEED, payer.key().as_ref()], bump)]
     pub player: Account<'info, Player>,
-    #[account(mut, seeds = [TREASURY_SEED], bump)]
-    pub treasury: UncheckedAccount<'info>,
     /// CHECK: this instruction only ever runs on the ER (after delegation), so it must use
     /// the ephemeral queue — it's pre-delegated to the delegation program on the base layer,
     /// unlike DEFAULT_QUEUE, so the ER will actually let a pull's fee payer touch it.
     #[account(mut, address = ephemeral_vrf_sdk::consts::DEFAULT_EPHEMERAL_QUEUE)]
     pub oracle_queue: UncheckedAccount<'info>,
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]

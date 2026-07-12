@@ -60,7 +60,7 @@ export function ProfileScreen() {
         const erProgram = new Program(idl, erProvider)
 
         const [playerPda] = web3.PublicKey.findProgramAddressSync(
-          [Buffer.from('player'), walletPublicKey.toBuffer()],
+          [Buffer.from('player_v2'), walletPublicKey.toBuffer()],
           PROGRAM_ID
         )
 

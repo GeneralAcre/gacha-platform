@@ -84,7 +84,6 @@ export function PullScreen({
   const [mintedAddress, setMintedAddress] = useState<string | null>(null)
   const [mintError, setMintError] = useState<string | null>(null)
 
-  const DRAW_PRICE_SOL = 0.001
   const pityDue = pitySinceGrand !== null && pitySinceGrand >= PITY_WARNING_AT
   const rarityStyle = result ? RARITY_STYLE[result.rarity] : null
   const walletConnected = Boolean(wallet.publicKey)
@@ -167,7 +166,7 @@ export function PullScreen({
   const playerPda = useMemo(() => {
     if (!wallet.publicKey) return null
     return web3.PublicKey.findProgramAddressSync(
-      [Buffer.from('player'), wallet.publicKey.toBuffer()],
+      [Buffer.from('player_v2'), wallet.publicKey.toBuffer()],
       PROGRAM_ID
     )[0]
   }, [wallet.publicKey])
@@ -289,8 +288,6 @@ export function PullScreen({
           .accounts({
             payer: wallet.publicKey,
             player: playerPda,
-            treasury: web3.PublicKey.findProgramAddressSync([Buffer.from('treasury')], PROGRAM_ID)[0],
-            systemProgram: web3.SystemProgram.programId,
           })
           .rpc(),
         'Wallet action timed out or was cancelled. Try again.'
@@ -419,7 +416,7 @@ export function PullScreen({
             />
             <div>
               <h2 className="text-xl font-black uppercase text-ink">Ready to draw</h2>
-              <p className="mt-1 text-sm text-ink/75">First draw free, then {DRAW_PRICE_SOL.toFixed(3)} SOL each.</p>
+              <p className="mt-1 text-sm text-ink/75">Draws are free while Obsession runs on devnet.</p>
               <p className="mt-3 text-xs uppercase tracking-[0.28em] text-ink/60 sm:mt-2">
                 Sealed on-chain card draw with a compact oracle reading.
               </p>
@@ -456,7 +453,7 @@ export function PullScreen({
           {!result && (
             <div className="w-full border-4 border-flare bg-flare/10 p-2 text-center">
               <p className="text-xs font-black uppercase tracking-widest text-flare">
-                Each draw costs {DRAW_PRICE_SOL.toFixed(3)} SOL and is paid on-chain.
+                Sealed on-chain draws — free while Obsession runs on devnet.
               </p>
             </div>
           )}
@@ -551,7 +548,7 @@ export function PullScreen({
               disabled={pulling}
               className={`mt-6 w-full rounded-[2rem] border-4 px-8 py-4 text-xl font-black uppercase active:translate-y-1 disabled:opacity-50 ${getCategory(category).accent}`}
             >
-              {pulling ? 'Consulting Obsession...' : result ? `Draw Again · ${DRAW_PRICE_SOL.toFixed(3)} SOL` : `Draw · ${DRAW_PRICE_SOL.toFixed(3)} SOL`}
+              {pulling ? 'Consulting Obsession...' : result ? 'Draw Again' : 'Draw'}
             </button>
           </div>
         </div>

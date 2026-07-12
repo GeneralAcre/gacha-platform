@@ -250,7 +250,10 @@
                   97,
                   121,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -262,6 +265,9 @@
         },
         {
           "name": "treasury",
+          "docs": [
+            "constraint pins it to the one canonical treasury PDA."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -577,33 +583,15 @@
                   97,
                   121,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
                 "kind": "account",
                 "path": "payer"
-              }
-            ]
-          }
-        },
-        {
-          "name": "treasury",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  116,
-                  114,
-                  101,
-                  97,
-                  115,
-                  117,
-                  114,
-                  121
-                ]
               }
             ]
           }

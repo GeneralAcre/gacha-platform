@@ -69,16 +69,16 @@ export function CategorySelect({
   }, [focusFaq, onFaqScrolled])
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-0 sm:px-6 sm:pb-14 lg:px-8">
-      <section className="relative isolate left-1/2 right-1/2 min-h-[calc(65svh-5rem)] w-screen -translate-x-1/2 overflow-hidden bg-ink text-paper sm:min-h-[calc(70svh-4.5rem)]">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-0 px-6 pb-14 lg:px-8">
+      <section className="relative isolate left-1/2 right-1/2 min-h-[calc(65svh-5rem)] w-screen -translate-x-1/2 overflow-hidden bg-ink text-paper min-h-[calc(70svh-4.5rem)]">
         <div className="pointer-events-none absolute inset-0 -z-10">
           <img src="/obsession-landing.png" alt="The fortune parlor at Obsession" className="h-full w-full object-cover object-[50%_57%]" />
           <div className="absolute inset-0 bg-gradient-to-b from-ink/95 via-ink/60 to-transparent" />
         </div>
-        <div className="relative flex min-h-[calc(65svh-5rem)] items-center px-4 py-8 sm:min-h-[calc(70svh-4.5rem)] sm:px-10 sm:py-14 lg:px-14 lg:py-18">
+        <div className="relative flex min-h-[calc(65svh-5rem)] items-center px-4 py-8 min-h-[calc(70svh-4.5rem)] px-10 py-14 lg:px-14 lg:py-18">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-flare">The story</p>
-            <h2 className="mt-3 text-4xl font-black uppercase leading-none sm:text-5xl lg:text-6xl">Every question becomes a keepsake.</h2>
+            <h2 className="mt-3 text-4xl font-black uppercase leading-none text-5xl lg:text-6xl">Every question becomes a keepsake.</h2>
             <p className="mt-6 max-w-4xl text-lg leading-9 text-paper/90 lg:text-xl">
               Madame Obsession gathers stray hopes, market hunches, and heart-shaped doubts into sealed capsule decks. Each pull reveals one original fortune card for your collection.
             </p>
@@ -88,7 +88,7 @@ export function CategorySelect({
       </section>
 
       <section className="mt-10">
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-4">
           {CATEGORIES.map((category) => (
             <button
               key={category.id}
@@ -97,28 +97,46 @@ export function CategorySelect({
             >
               <img src={DECK_ART[category.id]} alt={`${category.label} deck`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/95 via-ink/50 to-transparent px-5 pb-5 pt-16 text-paper">
-                <p className="text-2xl font-black uppercase leading-none sm:text-3xl">{category.label}</p>
+                <p className="text-2xl font-black uppercase leading-none text-3xl">{category.label}</p>
                 <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-paper/80">Choose deck +</p>
               </div>
             </button>
           ))}
+
+          <div
+            aria-disabled="true"
+            title="Teller — coming soon"
+            className="group relative mx-auto aspect-[1054/1492] w-full max-w-[23rem] cursor-not-allowed overflow-hidden border-4 border-ink bg-ink text-left shadow-[7px_7px_0_#18171b] opacity-75 grayscale"
+          >
+            <img src="/Card-Special.png" alt="Teller — coming soon" className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-ink/55" />
+            <div className="absolute inset-x-0 top-4 flex justify-center">
+              <span className="border-2 border-paper/70 bg-ink/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-paper/90">
+                🔒 Locked
+              </span>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/95 via-ink/50 to-transparent px-5 pb-5 pt-16 text-paper">
+              <p className="text-2xl font-black uppercase leading-none text-3xl">Teller</p>
+              <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-paper/80">Madame Obsession answers — coming soon</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <button type="button" onClick={onBrowse} className="group relative isolate mt-6 h-36 w-full overflow-hidden border-4 border-ink bg-ink text-left shadow-[6px_6px_0_#18171b] outline-none sm:h-44">
+      <button type="button" onClick={onBrowse} className="group relative isolate mt-6 h-36 w-full overflow-hidden border-4 border-ink bg-ink text-left shadow-[6px_6px_0_#18171b] outline-none h-44">
         <img src="/Browse-deck.png" alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-center opacity-85 transition-opacity group-hover:opacity-100" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-ink/75 via-ink/25 to-transparent" />
-        <div className="flex h-full items-end p-5 sm:p-7">
+        <div className="flex h-full items-end p-5 p-7">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-flare">Madame Obsession</p>
-            <h2 className="mt-1 text-3xl font-black uppercase leading-none text-paper sm:text-4xl">Browse the deck</h2>
+            <h2 className="mt-1 text-3xl font-black uppercase leading-none text-paper text-4xl">Browse the deck</h2>
           </div>
         </div>
       </button>
 
       <section ref={faqRef} className="mt-10">
         <p className="text-xs font-black uppercase tracking-[0.22em] text-ink/70">Need to know</p>
-        <h2 className="mt-2 text-3xl font-black uppercase text-ink sm:text-4xl">Frequently asked questions</h2>
+        <h2 className="mt-2 text-3xl font-black uppercase text-ink text-4xl">Frequently asked questions</h2>
 
         <div className="mt-5 flex flex-col gap-3">
           {FAQ_ITEMS.map((item) => (
@@ -140,7 +158,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
         aria-expanded={isOpen}
         className="flex w-full items-center justify-between gap-4 p-4 text-left"
       >
-        <span className="text-sm font-black uppercase leading-tight text-ink sm:text-base">{question}</span>
+        <span className="text-sm font-black uppercase leading-tight text-ink text-base">{question}</span>
         <span className="shrink-0 text-xl font-black text-flare">{isOpen ? '−' : '+'}</span>
       </button>
       {isOpen && <p className="border-t-2 border-ink/15 p-4 pt-3 text-sm leading-6 text-ink/75">{answer}</p>}

@@ -1,8 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { useWallet } from '@solana/wallet-adapter-react'
+import { lazy, Suspense, useState } from 'react'
 import { WalletContextProvider } from './components/WalletContextProvider'
 import { AppShell } from './components/AppShell'
-import type { NavbarStats } from './components/Navbar'
 import { LandingPage } from './components/LandingPage'
 import { CategorySelect } from './components/CategorySelect'
 import { DrawScreen } from './components/DrawScreen'
@@ -26,17 +24,11 @@ const PullScreen = lazy(() => import('./components/PullScreen').then(({ PullScre
 const ProfileScreen = lazy(() => import('./components/ProfileScreen').then(({ ProfileScreen }) => ({ default: ProfileScreen })))
 
 function ObsessionApp() {
-  const wallet = useWallet()
   const [screen, setScreen] = useState<Screen>('landing')
   const [category, setCategory] = useState<Category | null>(null)
   const [intention, setIntention] = useState('')
   const [lastDraw, setLastDraw] = useState<LastDraw | null>(null)
-  const [stats, setStats] = useState<NavbarStats | null>(null)
   const [focusFaq, setFocusFaq] = useState(false)
-
-  useEffect(() => {
-    if (!wallet.publicKey) setStats(null)
-  }, [wallet.publicKey])
 
   const handleReveal = (card: CardInfo, _drawnCategory: Category) => {
     setLastDraw({ name: card.name, rarity: card.rarity })
@@ -70,14 +62,13 @@ function ObsessionApp() {
         : category
           ? (
             <Suspense fallback={<LoadingReading />}>
-              <PullScreen category={category} intention={intention} onChangeCategory={() => setScreen('draw')} onReveal={handleReveal} onStatsChange={setStats} />
+              <PullScreen category={category} intention={intention} onChangeCategory={() => setScreen('draw')} onReveal={handleReveal} />
             </Suspense>
           )
           : <DrawScreen onSelect={(next) => { setCategory(next); setIntention(''); setScreen('pull') }} />
 
   return (
     <AppShell
-      stats={stats}
       lastDraw={lastDraw}
       onHome={() => setScreen('categories')}
       onDraw={() => setScreen('draw')}

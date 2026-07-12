@@ -5,16 +5,16 @@ interface PolicySection {
 
 function PolicyScreen({ kicker, title, updated, sections }: { kicker: string; title: string; updated: string; sections: PolicySection[] }) {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-3xl px-4 py-7 px-6 py-10">
       <div className="border-b-4 border-ink pb-5">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-ink/65">{kicker}</p>
-        <h1 className="mt-2 text-4xl font-black uppercase text-ink sm:text-5xl">{title}</h1>
+        <h1 className="mt-2 text-4xl font-black uppercase text-ink text-5xl">{title}</h1>
         <p className="mt-2 text-xs font-bold uppercase tracking-widest text-ink/55">Last updated {updated}</p>
       </div>
 
       <div className="mt-6 flex flex-col gap-5">
         {sections.map((section) => (
-          <section key={section.heading} className="border-4 border-ink bg-paper p-4 shadow-[5px_5px_0_#18171b] sm:p-5">
+          <section key={section.heading} className="border-4 border-ink bg-paper p-4 shadow-[5px_5px_0_#18171b] p-5">
             <h2 className="text-sm font-black uppercase tracking-widest text-flare">{section.heading}</h2>
             <div className="mt-2 flex flex-col gap-2">
               {section.body.map((paragraph, index) => (

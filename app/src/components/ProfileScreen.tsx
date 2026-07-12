@@ -107,9 +107,10 @@ export function ProfileScreen() {
                 rarity: number
                 cardSeed: number
                 category: number
+                special: number
               }>('cardRecord', info.data)
               const category = categoryFromByte(record.category)
-              const card = resolveCard(category, record.rarity, record.cardSeed)
+              const card = resolveCard(category, record.rarity, record.cardSeed, record.special === 1)
               found.push({ mint: batch[i].mint.toBase58(), card, category, pullIndex: batch[i].pullIndex })
             } catch {
               /* not a CardRecord — skip */
@@ -136,11 +137,11 @@ export function ProfileScreen() {
   const walletAddress = wallet.publicKey?.toBase58() ?? null
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 px-6 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-4 border-ink pb-5">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-ink/65">Player profile</p>
-          <h1 className="mt-2 text-4xl font-black uppercase text-ink sm:text-5xl">My fortune cards</h1>
+          <h1 className="mt-2 text-4xl font-black uppercase text-ink text-5xl">My fortune cards</h1>
           {walletAddress ? (
             <p className="mt-2 font-mono text-xs text-ink/65">
               Connected · {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}
@@ -169,7 +170,7 @@ export function ProfileScreen() {
           <p className="mt-2 text-sm text-ink/65">Draw a fortune and claim it as an NFT to begin your collection.</p>
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-3">
           {cards.map((entry) => (
             <a
               key={entry.mint}

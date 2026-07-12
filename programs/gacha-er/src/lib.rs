@@ -12,6 +12,10 @@ declare_id!("4re47fFt4ty2BkNS9NuhBUqDSbGZYhydkt42f4c9E7zv");
 pub const PLAYER_SEED: &[u8] = b"player";
 pub const CARD_MINT_SEED: &[u8] = b"card_mint";
 pub const CARD_RECORD_SEED: &[u8] = b"card_record";
+pub const TREASURY_SEED: &[u8] = b"treasury";
+
+// 0.001 SOL per draw on devnet
+pub const DRAW_PRICE_LAMPORTS: u64 = 1_000_000;
 
 // Pull the pity lever after this many pulls without a Legendary
 pub const PITY_THRESHOLD: u32 = 50;
@@ -27,6 +31,7 @@ pub mod gacha_er {
         player.pulls_since_legendary = 0;
         player.last_rarity = 0;
         player.last_card_seed = 0;
+        player.last_special = 0;
         msg!("Player initialized: {:?}", ctx.accounts.payer.key());
         Ok(())
     }
@@ -50,6 +55,18 @@ pub mod gacha_er {
     /// Resolves via callback below.
     pub fn pull_gacha(ctx: Context<PullGachaCtx>, client_seed: u8) -> Result<()> {
         msg!("Requesting VRF randomness for pull...");
+
+        anchor_lang::system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.key(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.payer.to_account_info(),
+                    to: ctx.accounts.treasury.to_account_info(),
+                },
+            ),
+            DRAW_PRICE_LAMPORTS,
+        )?;
+
         let ix = create_request_high_priority_scoped_randomness_ix(RequestRandomnessParams {
             payer: ctx.accounts.payer.key(),
             oracle_queue: ctx.accounts.oracle_queue.key(),
@@ -80,11 +97,13 @@ pub mod gacha_er {
         let card_seed = randomness[1];
 
         let rarity = resolve_rarity(rarity_roll, player.pulls_since_legendary);
+        let special = resolve_special(&randomness, player.pulls_done + 1);
 
         player.pulls_since_legendary = next_pulls_since_legendary(rarity, player.pulls_since_legendary);
         player.pulls_done = player.pulls_done.saturating_add(1);
         player.last_rarity = rarity;
         player.last_card_seed = card_seed;
+        player.last_special = special;
 
         msg!(
             "Pull #{} -> rarity: {}, card_seed: {}",
@@ -107,6 +126,7 @@ pub mod gacha_er {
         card_seed: u8,
         pull_index: u32,
         category: u8,
+        special: u8,
     ) -> Result<()> {
         require!(rarity <= 2, GachaError::InvalidRarity);
         require!(category <= 2, GachaError::InvalidCategory);
@@ -117,6 +137,7 @@ pub mod gacha_er {
         record.card_seed = card_seed;
         record.pull_index = pull_index;
         record.category = category;
+        record.special = special;
 
         let payer_key = ctx.accounts.payer.key();
         let pull_index_bytes = pull_index.to_le_bytes();
@@ -237,9 +258,24 @@ fn next_pulls_since_legendary(rarity: u8, pulls_since_legendary: u32) -> u32 {
     }
 }
 
+fn resolve_special(randomness: &[u8; 32], pull_number: u32) -> u8 {
+    // Every 10th draw is a special occasion draw, plus a small random bonus chance.
+    if pull_number % 10 == 0 || randomness[2] % 16 == 0 {
+        1
+    } else {
+        0
+    }
+}
+
 #[cfg(test)]
 mod pull_logic_tests {
     use super::*;
+    use std::mem::size_of;
+
+    #[test]
+    fn print_card_record_sizes() {
+        println!("CardRecord INIT_SPACE={} size={}", CardRecord::INIT_SPACE, size_of::<CardRecord>());
+    }
 
     #[test]
     fn common_tier_covers_1_through_60() {
@@ -300,6 +336,14 @@ pub struct Initialize<'info> {
         bump
     )]
     pub player: Account<'info, Player>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        space = 0,
+        seeds = [TREASURY_SEED],
+        bump
+    )]
+    pub treasury: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -322,11 +366,14 @@ pub struct PullGachaCtx<'info> {
     pub payer: Signer<'info>,
     #[account(mut, seeds = [PLAYER_SEED, payer.key().as_ref()], bump)]
     pub player: Account<'info, Player>,
+    #[account(mut, seeds = [TREASURY_SEED], bump)]
+    pub treasury: UncheckedAccount<'info>,
     /// CHECK: this instruction only ever runs on the ER (after delegation), so it must use
     /// the ephemeral queue — it's pre-delegated to the delegation program on the base layer,
     /// unlike DEFAULT_QUEUE, so the ER will actually let a pull's fee payer touch it.
     #[account(mut, address = ephemeral_vrf_sdk::consts::DEFAULT_EPHEMERAL_QUEUE)]
     pub oracle_queue: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -347,6 +394,7 @@ pub struct Player {
     pub pulls_since_legendary: u32,
     pub last_rarity: u8,
     pub last_card_seed: u8,
+    pub last_special: u8,
 }
 
 #[derive(Accounts)]
@@ -373,7 +421,7 @@ pub struct MintCardNft<'info> {
     #[account(
         init,
         payer = payer,
-        space = 8 + CardRecord::INIT_SPACE,
+        space = 8 + 40,
         seeds = [CARD_RECORD_SEED, mint.key().as_ref()],
         bump,
     )]
@@ -419,4 +467,5 @@ pub struct CardRecord {
     /// The program never picks a deck itself; this just remembers what the player chose
     /// so a wallet's minted history can be reconstructed later.
     pub category: u8,
+    pub special: u8,
 }

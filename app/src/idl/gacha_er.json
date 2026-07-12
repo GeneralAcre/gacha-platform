@@ -261,6 +261,27 @@
           }
         },
         {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -477,6 +498,10 @@
         {
           "name": "category",
           "type": "u8"
+        },
+        {
+          "name": "special",
+          "type": "u8"
         }
       ]
     },
@@ -558,6 +583,27 @@
               {
                 "kind": "account",
                 "path": "payer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
               }
             ]
           }
@@ -756,6 +802,10 @@
               "so a wallet's minted history can be reconstructed later."
             ],
             "type": "u8"
+          },
+          {
+            "name": "special",
+            "type": "u8"
           }
         ]
       }
@@ -779,6 +829,10 @@
           },
           {
             "name": "last_card_seed",
+            "type": "u8"
+          },
+          {
+            "name": "last_special",
             "type": "u8"
           }
         ]

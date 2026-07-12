@@ -68,6 +68,7 @@ fn mint_card_nft_creates_a_one_of_one_token() {
             card_seed,
             pull_index,
             category,
+            special: 0,
         }
         .data(),
     };
@@ -99,6 +100,12 @@ fn mint_card_nft_creates_a_one_of_one_token() {
     let record_account = svm
         .get_account(&to_address(card_record_pda))
         .expect("card record account should exist");
+    println!("record size={} owner={}", record_account.data.len(), record_account.owner);
+    println!("record data prefix={:?}", &record_account.data[..16]);
+    if record_account.data.len() >= 8 {
+        println!("discriminator={:?}", &record_account.data[..8]);
+    }
+    println!("record bytes={:?}", &record_account.data);
     let record = CardRecord::try_deserialize(&mut &record_account.data[..]).expect("valid card record");
     assert_eq!(record.mint, mint_pda);
     assert_eq!(record.rarity, rarity);
@@ -154,6 +161,7 @@ fn mint_card_nft_rejects_out_of_range_rarity() {
             card_seed,
             pull_index,
             category: 0,
+            special: 0,
         }
         .data(),
     };

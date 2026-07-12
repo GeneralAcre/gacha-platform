@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react'
-import { Navbar, type NavbarLastDraw, type NavbarStats } from './Navbar'
+import { Navbar, type NavbarLastDraw } from './Navbar'
 import { Footer } from './Footer'
 
 export function AppShell({
   children,
-  stats,
   lastDraw,
   onHome,
   onDraw,
@@ -17,7 +16,6 @@ export function AppShell({
   showFooter = true,
 }: {
   children: ReactNode
-  stats: NavbarStats | null
   lastDraw: NavbarLastDraw | null
   onHome: () => void
   onDraw: () => void
@@ -31,12 +29,10 @@ export function AppShell({
 }) {
   return (
     <div className="flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-flare text-ink">
-      {showNavbar && <Navbar stats={stats} lastDraw={lastDraw} onHome={onHome} onDraw={onDraw} onCollection={onCollection} onProfile={onProfile} />}
-      <main className={`flex flex-1 flex-col ${showNavbar ? 'pb-[4.5rem] sm:pb-0' : ''}`}>{children}</main>
+      {showNavbar && <Navbar lastDraw={lastDraw} onHome={onHome} onDraw={onDraw} onCollection={onCollection} onProfile={onProfile} />}
+      <main className="flex flex-1 flex-col">{children}</main>
       {showFooter && (
-        <div className="hidden sm:block">
         <Footer onHome={onHome} onDraw={onDraw} onCollection={onCollection} onProfile={onProfile} onFaq={onFaq} onPrivacy={onPrivacy} onTerms={onTerms} />
-        </div>
       )}
     </div>
   )

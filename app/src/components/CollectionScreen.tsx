@@ -51,11 +51,11 @@ export function CollectionScreen() {
   const active = activeIndex === null ? null : cards[activeIndex]
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-6xl px-4 py-7 px-6 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b-4 border-ink pb-5">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-ink/65">The complete set</p>
-          <h1 className="mt-2 text-4xl font-black uppercase text-ink sm:text-5xl">Fortune card collection</h1>
+          <h1 className="mt-2 text-4xl font-black uppercase text-ink text-5xl">Fortune card collection</h1>
         </div>
         <p className="max-w-xs text-sm text-ink/70">Every card that can emerge from Madame Obsession's sealed gacha decks.</p>
       </div>
@@ -65,7 +65,7 @@ export function CollectionScreen() {
           <div className="flex flex-wrap items-end justify-between gap-4 border-b-4 border-ink pb-5">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-ink/65">{categoryInfo.label} deck</p>
-              <h2 className="mt-2 text-3xl font-black uppercase text-ink sm:text-4xl">{categoryInfo.description}</h2>
+              <h2 className="mt-2 text-3xl font-black uppercase text-ink text-4xl">{categoryInfo.description}</h2>
             </div>
             <span className="rounded-full border-2 border-ink bg-paper px-4 py-1 text-xs font-black uppercase tracking-[0.22em] text-ink shadow-[3px_3px_0_#18171b]">
               {categoryInfo.symbol}
@@ -111,11 +111,11 @@ export function CollectionScreen() {
 
       {active && (
         <div
-          className="fixed inset-0 z-50 flex overflow-y-auto bg-ink/80 p-3 sm:items-center sm:justify-center sm:p-4"
+          className="fixed inset-0 z-50 flex overflow-y-auto bg-ink/80 p-3 items-center justify-center p-4"
           onClick={() => setActiveIndex(null)}
         >
           <div
-            className="relative my-auto flex w-full max-w-lg flex-col gap-4 border-4 border-ink bg-paper p-4 shadow-[8px_8px_0_#18171b] sm:flex-row sm:gap-5 sm:p-6"
+            className="relative my-auto flex w-full max-w-lg flex-col gap-4 border-4 border-ink bg-paper p-4 shadow-[8px_8px_0_#18171b] flex-row gap-5 p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <button
@@ -130,7 +130,7 @@ export function CollectionScreen() {
             <img
               src={active.card.image}
               alt={`${active.card.name} card art`}
-              className={`mx-auto h-52 w-36 shrink-0 border-4 bg-ink object-cover sm:mx-0 sm:h-64 sm:w-44 ${RARITY_RING[active.card.rarity]}`}
+              className={`mx-auto h-52 w-36 shrink-0 border-4 bg-ink object-cover mx-0 h-64 w-44 ${RARITY_RING[active.card.rarity]}`}
               key={activeIndex}
             />
 
@@ -140,11 +140,11 @@ export function CollectionScreen() {
               <p className="mt-3 text-sm italic leading-6 text-ink/70">"{active.card.reading}"</p>
               <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-ink/55">{getCategory(active.category).label} deck</p>
 
-              <div className="mt-5 flex items-center justify-between gap-2 sm:mt-auto sm:pt-5">
+              <div className="mt-5 flex items-center justify-between gap-2 mt-auto pt-5">
                 <button
                   type="button"
                   onClick={() => setActiveIndex((index) => (index === null ? index : (index - 1 + cards.length) % cards.length))}
-                  className="border-4 border-ink bg-ink px-2 py-2 text-[10px] font-black uppercase tracking-widest text-paper shadow-[3px_3px_0_#18171b] active:translate-y-0.5 active:shadow-none sm:px-3 sm:text-xs"
+                  className="border-4 border-ink bg-ink px-2 py-2 text-[10px] font-black uppercase tracking-widest text-paper shadow-[3px_3px_0_#18171b] active:translate-y-0.5 active:shadow-none px-3 text-xs"
                 >
                   ← Prev
                 </button>
@@ -154,7 +154,7 @@ export function CollectionScreen() {
                 <button
                   type="button"
                   onClick={() => setActiveIndex((index) => (index === null ? index : (index + 1) % cards.length))}
-                  className="border-4 border-ink bg-ink px-2 py-2 text-[10px] font-black uppercase tracking-widest text-paper shadow-[3px_3px_0_#18171b] active:translate-y-0.5 active:shadow-none sm:px-3 sm:text-xs"
+                  className="border-4 border-ink bg-ink px-2 py-2 text-[10px] font-black uppercase tracking-widest text-paper shadow-[3px_3px_0_#18171b] active:translate-y-0.5 active:shadow-none px-3 text-xs"
                 >
                   Next →
                 </button>

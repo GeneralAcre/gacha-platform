@@ -8,6 +8,7 @@ export interface CardInfo {
   reading: string
   image: string
   rarity: Rarity
+  special?: boolean
 }
 
 type CardCopy = Pick<CardInfo, 'name' | 'reading'>
@@ -77,11 +78,29 @@ export const CARD_IMAGE: Record<Category, string> = {
   meme: '/cards/Card-Meme.png',
 }
 
-export function resolveCard(category: Category, rarityByte: number, cardSeed: number): CardInfo {
+// Bonus card layered onto a special pull. Teases the upcoming Teller feature — locked until it ships.
+export const SPECIAL_CARD = {
+  image: '/Card-Special.png',
+  name: 'Teller',
+  reading: 'Madame Obsession is waiting to speak with you directly. This channel is sealed until it opens.',
+}
+
+export function resolveCard(
+  category: Category,
+  rarityByte: number,
+  cardSeed: number,
+  special = false,
+): CardInfo {
   const rarity = RARITY_MAP[rarityByte] ?? 'minor'
   const pool = POOLS[category][rarity]
   const item = pool[cardSeed % pool.length]
-  return { ...item, id: rarityByte * 1000 + cardSeed, image: CARD_IMAGE[category], rarity }
+  return {
+    ...item,
+    id: rarityByte * 1000 + cardSeed,
+    image: CARD_IMAGE[category],
+    rarity,
+    special,
+  }
 }
 
 export function getCollectionCards(): { category: Category; card: CardInfo }[] {

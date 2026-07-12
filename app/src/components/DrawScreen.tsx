@@ -17,13 +17,12 @@ const PACK_DETAILS: Record<Category, { art: string; accent: string }> = {
 
 export function DrawScreen({ onSelect }: { onSelect: (category: Category) => void }) {
   return (
-    <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-10">
-      <header className="relative border-b-4 border-ink pb-5 sm:flex sm:items-end sm:justify-between">
+    <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 px-6 py-10">
+      <header className="relative border-b-4 border-ink pb-5">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.28em] text-ink/65">Obsession gacha terminal · 03 decks live</p>
-          <h1 className="mt-2 text-4xl font-black uppercase leading-[.86] text-ink sm:text-6xl">Pick your<br className="sm:hidden" /> next omen.</h1>
+          <h1 className="mt-2 text-4xl font-black uppercase leading-[.86] text-ink text-6xl">Pick your next omen</h1>
         </div>
-        <p className="mt-4 max-w-xs text-sm font-bold leading-5 text-ink/70 sm:mt-0 sm:text-right">Each sealed card is resolved on-chain. The reveal is yours to keep.</p>
       </header>
 
       <section className="relative mx-auto mt-8 grid gap-6 lg:grid-cols-3">
@@ -43,7 +42,7 @@ export function DrawScreen({ onSelect }: { onSelect: (category: Category) => voi
                 </div>
               </div>
 
-              <div className="flex flex-1 flex-col justify-between rounded-sm border-4 border-ink bg-paper p-4 shadow-[5px_5px_0_#18171b] sm:p-5">
+              <div className="flex flex-1 flex-col justify-between rounded-sm border-4 border-ink bg-paper p-4 shadow-[5px_5px_0_#18171b] p-5">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[.22em] text-ink/60">{category.label} deck</p>
                   <h2 className="mt-2 text-2xl font-black uppercase leading-tight text-ink">{category.label}</h2>

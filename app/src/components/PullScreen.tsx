@@ -2,9 +2,8 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { AnchorProvider, Program, web3 } from '@coral-xyz/anchor'
 import idl from '../idl/gacha_er.json'
-import { resolveCard, type CardInfo, type Rarity } from './cardRegistry'
+import { resolveCard, CARD_IMAGE, SPECIAL_CARD, type CardInfo, type Rarity } from './cardRegistry'
 import { getCategory, categoryToByte, type Category } from './categories'
-import type { NavbarStats } from './Navbar'
 import { OracleCardArt } from './OracleCardArt'
 
 type AnchorWallet = ConstructorParameters<typeof AnchorProvider>[1]
@@ -14,6 +13,7 @@ interface PlayerAccount {
   pullsSinceLegendary: number
   lastRarity: number
   lastCardSeed: number
+  lastSpecial: number
 }
 
 const PROGRAM_ID = new web3.PublicKey('4re47fFt4ty2BkNS9NuhBUqDSbGZYhydkt42f4c9E7zv')
@@ -56,13 +56,11 @@ export function PullScreen({
   intention,
   onChangeCategory,
   onReveal,
-  onStatsChange,
 }: {
   category: Category
   intention?: string
   onChangeCategory: () => void
   onReveal: (card: CardInfo, category: Category) => void
-  onStatsChange: (stats: NavbarStats | null) => void
 }) {
   const { connection } = useConnection() // base-layer devnet connection
   const wallet = useWallet()
@@ -77,29 +75,55 @@ export function PullScreen({
   const [pitySinceGrand, setPitySinceGrand] = useState<number | null>(null)
   const [latencyMs, setLatencyMs] = useState<number | null>(null)
   const [setupLamports, setSetupLamports] = useState<number | null>(null)
-  const [lastPull, setLastPull] = useState<{ rarity: number; cardSeed: number; pullIndex: number } | null>(null)
+  const [lastPull, setLastPull] = useState<{ rarity: number; cardSeed: number; pullIndex: number; special: number } | null>(null)
   const [minting, setMinting] = useState(false)
   const [mintedPullIndex, setMintedPullIndex] = useState<number | null>(null)
   const [mintedAddress, setMintedAddress] = useState<string | null>(null)
   const [mintError, setMintError] = useState<string | null>(null)
 
-  const isFirstPull = pullsDone === 0
+  const DRAW_PRICE_SOL = 0.001
   const pityDue = pitySinceGrand !== null && pitySinceGrand >= PITY_WARNING_AT
   const rarityStyle = result ? RARITY_STYLE[result.rarity] : null
-  const needsFunding = setupLamports !== null && setupLamports < MIN_SETUP_LAMPORTS
+  const walletConnected = Boolean(wallet.publicKey)
+  const needsFunding = walletConnected && setupLamports !== null && setupLamports < MIN_SETUP_LAMPORTS
 
-  useEffect(() => {
-    if (pullsDone === null || pitySinceGrand === null) return
-    onStatsChange({ pullsDone, pitySinceGrand })
-  }, [pullsDone, pitySinceGrand, onStatsChange])
+  const withWalletTimeout = useCallback(<T,>(promise: Promise<T>, fallbackMessage: string, timeoutMs = 25000) => {
+    return new Promise<T>((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        setError(fallbackMessage)
+        setPulling(false)
+        setDelegating(false)
+        reject(new Error(fallbackMessage))
+      }, timeoutMs)
+
+      promise.then((value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      }).catch((error) => {
+        window.clearTimeout(timer)
+        reject(error)
+      })
+    })
+  }, [])
 
   useEffect(() => {
     if (wallet.publicKey) return
     setDelegated(false)
+    setResult(null)
+    setResultCategory(null)
+    setError(null)
     setPullsDone(null)
     setPitySinceGrand(null)
-    onStatsChange(null)
-  }, [wallet.publicKey, onStatsChange])
+    setLatencyMs(null)
+    setSetupLamports(null)
+    setLastPull(null)
+    setMinting(false)
+    setMintedPullIndex(null)
+    setMintedAddress(null)
+    setMintError(null)
+    setPulling(false)
+    setDelegating(false)
+  }, [wallet.publicKey])
 
   useEffect(() => {
     if (!wallet.publicKey || delegated) return
@@ -156,17 +180,21 @@ export function PullScreen({
     setDelegating(true)
     setError(null)
     try {
-      await baseProgram.methods
-        .initialize()
-        .accounts({
-          payer: wallet.publicKey,
-          player: playerPda,
-          systemProgram: web3.SystemProgram.programId,
-        })
-        .rpc()
-        .catch(() => {
-          /* already initialized — fine */
-        })
+      await withWalletTimeout(
+        baseProgram.methods
+          .initialize()
+          .accounts({
+            payer: wallet.publicKey,
+            player: playerPda,
+            treasury: web3.PublicKey.findProgramAddressSync([Buffer.from('treasury')], PROGRAM_ID)[0],
+            systemProgram: web3.SystemProgram.programId,
+          })
+          .rpc()
+          .catch(() => {
+            /* already initialized — fine */
+          }),
+        'Wallet action timed out or was cancelled. Try again.'
+      )
 
       // Only delegate if it isn't already — re-delegating an account the delegation
       // program already owns fails with "instruction modified data of an account it
@@ -176,13 +204,16 @@ export function PullScreen({
       const alreadyDelegated = playerAccountInfo?.owner.equals(DELEGATION_PROGRAM_ID) ?? false
 
       if (!alreadyDelegated) {
-        await baseProgram.methods
-          .delegatePlayer()
-          .accounts({
-            payer: wallet.publicKey,
-            pda: playerPda,
-          })
-          .rpc()
+        await withWalletTimeout(
+          baseProgram.methods
+            .delegatePlayer()
+            .accounts({
+              payer: wallet.publicKey,
+              pda: playerPda,
+            })
+            .rpc(),
+          'Wallet action timed out or was cancelled. Try again.'
+        )
       }
 
       setDelegated(true)
@@ -220,13 +251,18 @@ export function PullScreen({
     try {
       const clientSeed = Math.floor(Math.random() * 255)
 
-      await erProgram.methods
-        .pullGacha(clientSeed)
-        .accounts({
-          payer: wallet.publicKey,
-          player: playerPda,
-        })
-        .rpc()
+      await withWalletTimeout(
+        erProgram.methods
+          .pullGacha(clientSeed)
+          .accounts({
+            payer: wallet.publicKey,
+            player: playerPda,
+            treasury: web3.PublicKey.findProgramAddressSync([Buffer.from('treasury')], PROGRAM_ID)[0],
+            systemProgram: web3.SystemProgram.programId,
+          })
+          .rpc(),
+        'Wallet action timed out or was cancelled. Try again.'
+      )
 
       const accountNamespace = playerAccountNamespace(erProgram)
 
@@ -244,10 +280,15 @@ export function PullScreen({
         setLatencyMs(Math.round(performance.now() - startedAt))
         setPullsDone(updated.pullsDone)
         setPitySinceGrand(updated.pullsSinceLegendary)
-        const card = resolveCard(category, updated.lastRarity, updated.lastCardSeed)
+        const card = resolveCard(category, updated.lastRarity, updated.lastCardSeed, updated.lastSpecial === 1)
         setResult(card)
         setResultCategory(category)
-        setLastPull({ rarity: updated.lastRarity, cardSeed: updated.lastCardSeed, pullIndex: updated.pullsDone })
+        setLastPull({
+          rarity: updated.lastRarity,
+          cardSeed: updated.lastCardSeed,
+          pullIndex: updated.pullsDone,
+          special: updated.lastSpecial,
+        })
         onReveal(card, category)
       } else {
         setError('Pull sent, still resolving — check back in a moment.')
@@ -285,7 +326,13 @@ export function PullScreen({
       )
 
       await baseProgram.methods
-        .mintCardNft(lastPull.rarity, lastPull.cardSeed, lastPull.pullIndex, categoryToByte(category))
+        .mintCardNft(
+          lastPull.rarity,
+          lastPull.cardSeed,
+          lastPull.pullIndex,
+          categoryToByte(category),
+          lastPull.special,
+        )
         .accounts({
           payer: wallet.publicKey,
           mint: mintPda,
@@ -306,72 +353,78 @@ export function PullScreen({
     }
   }, [baseProgram, wallet.publicKey, lastPull, category])
 
-  if (!wallet.publicKey) {
+  if (!walletConnected) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-        <span className="text-2xl text-flare">✦</span>
-        <p className="text-sm font-bold uppercase tracking-widest text-ink/70">
-          Connect a wallet above to begin
-        </p>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+        <span className="text-3xl text-flare">✦</span>
+        <div className="rounded-2xl border-4 border-ink bg-[#f5e3cb] px-8 py-6 text-center shadow-[4px_4px_0_#18171b]">
+          <p className="text-lg font-black uppercase tracking-[0.24em] text-ink">Wallet disconnected</p>
+          <p className="mt-2 text-sm text-ink/75">Reopen Phantom and reconnect to continue drawing.</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-5 px-4 py-7 sm:py-10">
-      <div className="flex w-full items-center justify-between border-b-2 border-ink/30 pb-3">
+    <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-5 px-4 py-7 py-10">
+      <div className="flex w-full flex-col gap-4 border-b-2 border-ink/30 pb-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-ink/60">Active channel</p>
           <p className="text-lg font-black uppercase text-ink">{getCategory(category).label}</p>
         </div>
-        <button onClick={onChangeCategory} className="border-2 border-ink px-3 py-2 text-[10px] font-black uppercase tracking-widest text-ink">
+        <button onClick={onChangeCategory} className="rounded-sm border-2 border-ink px-3 py-2 text-[10px] font-black uppercase tracking-widest text-ink">
           Change
         </button>
       </div>
 
       {!delegated && (
-        <div className="flex w-full flex-col items-center gap-3">
-          <div className="w-full border-4 border-ink bg-paper p-3 text-center shadow-[5px_5px_0_#18171b]">
-            <p className="text-sm font-bold uppercase tracking-wide text-flare">First truth's free</p>
-            <p className="mt-1 text-xs text-ink/70">
-              Zero gas, only possible because MagicBlock's Ephemeral Rollup makes every draw instant.
-            </p>
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-4 border-ink bg-[#f5e3cb] p-4 text-center shadow-[4px_4px_0_#18171b] sm:flex-row sm:text-left">
+            <img
+              src={CARD_IMAGE[category]}
+              alt={`${getCategory(category).label} card art`}
+              className="h-28 w-28 shrink-0 rounded-xl object-contain"
+            />
+            <div>
+              <h2 className="text-xl font-black uppercase text-ink">Ready to draw</h2>
+              <p className="mt-1 text-sm text-ink/75">First draw free, then {DRAW_PRICE_SOL.toFixed(3)} SOL each.</p>
+              <p className="mt-3 text-xs uppercase tracking-[0.28em] text-ink/60 sm:mt-2">
+                Sealed on-chain card draw with a compact oracle reading.
+              </p>
+            </div>
           </div>
+
           {needsFunding && (
-            <div className="w-full border-4 border-red-500 bg-red-950/40 p-3 text-center">
-              <p className="text-xs font-black uppercase tracking-widest text-red-300">
-                This wallet has no devnet SOL
-              </p>
-              <p className="mt-1 text-xs text-red-200">
-                The one-time setup step runs on Solana devnet and needs a trace of SOL for fees — pulls
-                themselves are still free, that's the Ephemeral Rollup's job.
-              </p>
+            <div className="mt-4 rounded-2xl border-4 border-red-500 bg-red-950/40 p-4 text-sm text-red-200">
+              <p className="font-black uppercase tracking-widest text-red-300">No devnet SOL</p>
+              <p className="mt-2 leading-6">You need a little devnet SOL in your wallet to start.</p>
               <a
                 href={DEVNET_FAUCET_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block text-xs font-black uppercase tracking-widest text-red-100 underline"
+                className="mt-3 inline-block rounded-full border border-red-100 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-100"
               >
-                Get free devnet SOL →
+                Get devnet SOL
               </a>
             </div>
           )}
+
           <button
             onClick={handleSetup}
             disabled={delegating}
-            className={`w-full border-4 px-8 py-4 font-black uppercase text-ink active:translate-y-1 disabled:opacity-50 ${getCategory(category).accent}`}
+            className={`mt-4 w-full rounded-2xl border-4 px-6 py-4 text-base font-black uppercase tracking-widest text-ink ${getCategory(category).accent} active:translate-y-1 disabled:opacity-50`}
           >
-            {delegating ? 'Attuning...' : 'Attune to Obsession'}
+            {delegating ? 'Opening...' : 'Start drawing'}
           </button>
         </div>
       )}
 
       {delegated && (
         <div className="flex w-full flex-col items-center gap-3">
-          {isFirstPull && !result && (
+          {!result && (
             <div className="w-full border-4 border-flare bg-flare/10 p-2 text-center">
               <p className="text-xs font-black uppercase tracking-widest text-flare">
-                First truth's free — no payment required
+                Each draw costs {DRAW_PRICE_SOL.toFixed(3)} SOL and is paid on-chain.
               </p>
             </div>
           )}
@@ -389,51 +442,71 @@ export function PullScreen({
             }`}
           >
             {result && rarityStyle ? (
-              <div className="animate-[reveal_500ms_ease-out] flex flex-col items-center gap-2 pb-1">
-                {resultCategory && (
-                  <span className="text-[10px] font-black uppercase tracking-widest text-ink/60">
-                    Your draw · {getCategory(resultCategory).label}
+              <div className="animate-[reveal_500ms_ease-out] flex flex-col items-center gap-4 pb-1 text-center flex-row items-start gap-5 text-left">
+                <OracleCardArt
+                  category={resultCategory ?? category}
+                  rarity={result.rarity}
+                  className="h-48 w-36 shrink-0 drop-shadow-[6px_6px_0_0_#fd1789] mx-0"
+                />
+                <div className="flex min-w-0 flex-1 flex-col items-center gap-2 items-start">
+                  {resultCategory && (
+                    <span className="text-[10px] font-black uppercase tracking-widest text-ink/60">
+                      Your draw · {getCategory(resultCategory).label}
+                    </span>
+                  )}
+                  <span className={`inline-block px-2 py-1 text-xs font-black uppercase tracking-widest ${rarityStyle.badge}`}>
+                    {rarityStyle.label}
                   </span>
-                )}
-                <span className={`inline-block px-2 py-1 text-xs font-black uppercase tracking-widest ${rarityStyle.badge}`}>
-                  {rarityStyle.label}
-                </span>
-                <OracleCardArt category={resultCategory ?? category} rarity={result.rarity} className="h-48 w-36 bg-ink shadow-[6px_6px_0_0_#fd1789]" />
-                <div className="text-2xl font-black uppercase text-ink">{result.name}</div>
-                <p className="text-sm italic text-ink/70">"{result.reading}"</p>
-                {intention && (
-                  <p className="border-l-2 border-flare pl-2 text-left text-[11px] font-bold text-ink/70">Wish: {intention}</p>
-                )}
-                {latencyMs !== null && (
-                  <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-ink/60">
-                    Sealed by MagicBlock VRF · resolved in {latencyMs}ms
-                  </p>
-                )}
-                {lastPull && (
-                  <div className="mt-2 w-full">
-                    {mintedPullIndex === lastPull.pullIndex ? (
-                      <a
-                        href={`https://explorer.solana.com/address/${mintedAddress}?cluster=devnet`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex w-full items-center justify-center gap-2 border-4 border-flare bg-flare/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-flare active:translate-y-1"
-                      >
-                        ✦ Minted — View on Explorer ↗
-                      </a>
-                    ) : (
-                      <button
-                        onClick={handleMint}
-                        disabled={minting}
-                        className="w-full border-4 border-ink bg-ink px-4 py-3 text-xs font-black uppercase tracking-widest text-paper active:translate-y-1 disabled:opacity-50"
-                      >
-                        {minting ? 'Minting...' : 'Claim as NFT'}
-                      </button>
-                    )}
-                    {mintError && (
-                      <p className="mt-2 w-full [overflow-wrap:anywhere] text-[11px] font-bold text-red-500">{mintError}</p>
-                    )}
-                  </div>
-                )}
+                  <div className="text-2xl font-black uppercase text-ink">{result.name}</div>
+                  <p className="text-sm italic text-ink/70">"{result.reading}"</p>
+                  {result.special && (
+                    <div className="mt-1 flex w-full items-center gap-3 rounded-2xl border-2 border-flare/60 bg-ink/5 p-3 text-left">
+                      <img
+                        src={SPECIAL_CARD.image}
+                        alt={`${SPECIAL_CARD.name} — locked`}
+                        className="h-16 w-12 shrink-0 rounded-lg border-2 border-flare/60 object-cover grayscale"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-flare">🔒 Special occasion draw</p>
+                        <p className="mt-1 text-xs font-black uppercase text-ink">{SPECIAL_CARD.name} · Coming soon</p>
+                        <p className="mt-1 text-[11px] leading-4 text-ink/70">{SPECIAL_CARD.reading}</p>
+                      </div>
+                    </div>
+                  )}
+                  {intention && (
+                    <p className="border-l-2 border-flare pl-2 text-left text-[11px] font-bold text-ink/70">Wish: {intention}</p>
+                  )}
+                  {latencyMs !== null && (
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-ink/60">
+                      Sealed by MagicBlock VRF · resolved in {latencyMs}ms
+                    </p>
+                  )}
+                  {lastPull && (
+                    <div className="mt-4 w-full">
+                      {mintedPullIndex === lastPull.pullIndex ? (
+                        <a
+                          href={`https://explorer.solana.com/address/${mintedAddress}?cluster=devnet`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex w-full items-center justify-center gap-2 rounded-[2rem] border-4 border-flare bg-flare/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-flare active:translate-y-1"
+                        >
+                          ✦ Minted — View on Explorer ↗
+                        </a>
+                      ) : (
+                        <button
+                          onClick={handleMint}
+                          disabled={minting}
+                          className="w-full rounded-[2rem] border-4 border-ink bg-ink px-4 py-3 text-xs font-black uppercase tracking-widest text-paper active:translate-y-1 disabled:opacity-50"
+                        >
+                          {minting ? 'Minting...' : 'Claim as NFT'}
+                        </button>
+                      )}
+                      {mintError && (
+                        <p className="mt-2 w-full [overflow-wrap:anywhere] text-[11px] font-bold text-red-500">{mintError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className={`mx-auto w-40 transition-transform duration-700 ${pulling ? 'animate-pulse scale-95' : 'hover:-translate-y-1'}`}>
@@ -444,9 +517,9 @@ export function PullScreen({
             <button
               onClick={handlePull}
               disabled={pulling}
-              className={`mt-4 w-full border-4 px-8 py-4 text-xl font-black uppercase active:translate-y-1 disabled:opacity-50 ${getCategory(category).accent}`}
+              className={`mt-6 w-full rounded-[2rem] border-4 px-8 py-4 text-xl font-black uppercase active:translate-y-1 disabled:opacity-50 ${getCategory(category).accent}`}
             >
-              {pulling ? 'Consulting Obsession...' : result ? 'Draw Again' : isFirstPull ? 'Draw Revelation - Free' : 'Reveal Your Fortune'}
+              {pulling ? 'Consulting Obsession...' : result ? `Draw Again · ${DRAW_PRICE_SOL.toFixed(3)} SOL` : `Draw · ${DRAW_PRICE_SOL.toFixed(3)} SOL`}
             </button>
           </div>
         </div>

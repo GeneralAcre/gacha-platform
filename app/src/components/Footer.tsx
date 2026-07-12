@@ -28,9 +28,9 @@ export function Footer({
   onTerms: () => void
 }) {
   return (
-    <footer className="border-t-4 border-ink bg-ink text-paper [padding-bottom:env(safe-area-inset-bottom)]">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
-        <div className="col-span-2 sm:col-span-1">
+    <footer className="border-t-4 border-ink bg-ink text-paper pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 md:grid-cols-[2fr_1fr_1fr] md:px-6">
+        <div>
           <FooterHeading>Contact &amp; support</FooterHeading>
           <form onSubmit={(event) => event.preventDefault()} className="mt-4 flex flex-col gap-4">
             <input
@@ -48,7 +48,7 @@ export function Footer({
               rows={2}
               className="resize-none border-b-2 border-paper/20 bg-transparent pb-2 text-sm text-paper placeholder:text-paper/40 focus:border-flare focus:outline-none"
             />
-            <button type="submit" className="mt-1 border-4 border-paper bg-flare px-4 py-3 text-xs font-black uppercase tracking-widest text-ink">
+            <button type="submit" className="mt-1 w-full max-w-xs rounded-[1.75rem] border-4 border-paper bg-flare px-4 py-3 text-xs font-black uppercase tracking-widest text-ink">
               Send
             </button>
           </form>
@@ -74,7 +74,7 @@ export function Footer({
         </div>
       </div>
 
-      <div className="border-t-2 border-paper/10 px-4 py-8 sm:px-6">
+      <div className="border-t-2 border-paper/10 px-4 py-8 md:px-6">
         <p className="mx-auto max-w-xl text-center text-xs leading-6 text-paper/50 sm:text-sm">
           Obsession is a fully on-chain fortune-card gacha on Solana — draw sealed cards, follow your reading, and grow your collection.
           For entertainment only. Not financial, legal, or relationship advice.

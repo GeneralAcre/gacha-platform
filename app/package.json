@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
     "@coral-xyz/anchor": "^0.32.1",
     "@solana-mobile/wallet-adapter-mobile": "^2.2.9",
     "@solana-mobile/wallet-standard-mobile": "^0.5.3",
@@ -23,6 +25,7 @@
     "vercel": "^55.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^24.13.3",

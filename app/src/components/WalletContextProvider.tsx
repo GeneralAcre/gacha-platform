@@ -12,10 +12,13 @@ import '@solana/wallet-adapter-react-ui/styles.css'
 
 // Register the current MWA web implementation before WalletProvider discovers wallets.
 // This runs only in the browser and persists Seeker wallet authorization between sessions.
+// Inside the Capacitor APK the WebView origin is https://localhost, which wallets would
+// show as the dapp identity — use the deployed site instead so approval prompts look right.
+const nativeShell = globalThis.location?.origin === 'https://localhost'
 registerMwa({
   appIdentity: {
     name: 'Obsession',
-    uri: globalThis.location?.origin ?? 'https://obsession.app',
+    uri: nativeShell ? 'https://gacha-er.vercel.app' : (globalThis.location?.origin ?? 'https://obsession.app'),
     icon: '/favicon.svg',
   },
   authorizationCache: createDefaultAuthorizationCache(),

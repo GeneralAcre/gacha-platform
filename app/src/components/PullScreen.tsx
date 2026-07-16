@@ -29,11 +29,11 @@ const ER_WS_ENDPOINT = 'wss://devnet-as.magicblock.app'
 // pull transactions with "accounts that were delegated to different ER nodes."
 
 const RARITY_STYLE: Record<Rarity, { badge: string; ring: string; label: string }> = {
-  minor: { badge: 'bg-paper text-ink', ring: 'border-paper/40', label: 'MINOR OMEN' },
-  major: { badge: 'bg-flare text-ink', ring: 'border-flare', label: 'MAJOR OMEN' },
+  minor: { badge: 'bg-ink/8 text-ink', ring: 'border-ink/15', label: 'MINOR OMEN' },
+  major: { badge: 'bg-flare text-white', ring: 'border-flare', label: 'MAJOR OMEN' },
   grand: {
-    badge: 'bg-flare text-ink',
-    ring: 'border-flare shadow-[0_0_40px_-6px_#FD1789]',
+    badge: 'bg-flare text-white',
+    ring: 'border-flare shadow-[0_0_40px_-6px_rgba(91,79,232,0.55)]',
     label: 'GRAND REVELATION',
   },
 }
@@ -386,9 +386,9 @@ export function PullScreen({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <span className="text-3xl text-flare">✦</span>
-        <div className="rounded-none border-4 border-ink bg-[#f5e3cb] px-8 py-6 text-center shadow-[4px_4px_0_#18171b]">
+        <div className="rounded-2xl border border-ink/10 bg-paper px-8 py-6 text-center">
           <p className="text-lg font-black uppercase tracking-[0.24em] text-ink">Wallet disconnected</p>
-          <p className="mt-2 text-sm text-ink/75">Reopen Phantom and reconnect to continue drawing.</p>
+          <p className="mt-2 text-sm text-ink/65">Reopen Phantom and reconnect to continue drawing.</p>
         </div>
       </div>
     )
@@ -396,42 +396,42 @@ export function PullScreen({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-0 px-4 py-6 md:py-8">
-      <div className="flex w-full flex-col gap-2 border-b-2 border-ink/30 pb-1 md:flex-row md:items-center md:justify-between">
+      <div className="flex w-full flex-col gap-2 border-b border-ink/10 pb-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-ink/60">Active channel</p>
-          <p className="text-lg font-black uppercase text-ink">{getCategory(category).label}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ink/45">Active channel</p>
+          <p className="text-lg font-black tracking-tight text-ink">{getCategory(category).label}</p>
         </div>
-        <button onClick={onChangeCategory} className="rounded-none border-2 border-ink px-3 py-2 text-[10px] font-black uppercase tracking-widest text-ink">
+        <button onClick={onChangeCategory} className="rounded-full border border-ink/12 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-ink hover:border-ink">
           Change
         </button>
       </div>
 
       {!delegated && (
-        <div className="w-full max-w-md">
-          <div className="flex flex-col items-center gap-3 rounded-none border-4 border-ink bg-[#f5e3cb] p-4 text-center shadow-[4px_4px_0_#18171b] sm:flex-row sm:text-left">
+        <div className="mt-6 w-full max-w-md">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-ink/10 bg-paper p-5 text-center sm:flex-row sm:text-left">
             <img
               src={CARD_IMAGE[category]}
               alt={`${getCategory(category).label} card art`}
-              className="h-28 w-28 shrink-0 rounded-none object-contain"
+              className="h-28 w-28 shrink-0 rounded-xl object-contain"
             />
             <div>
-              <h2 className="text-xl font-black uppercase text-ink">Ready to draw</h2>
-              <p className="mt-1 text-sm text-ink/75">Draws are free while Obsession runs on devnet.</p>
-              <p className="mt-3 text-xs uppercase tracking-[0.28em] text-ink/60 sm:mt-2">
+              <h2 className="text-xl font-black tracking-tight text-ink">Ready to draw</h2>
+              <p className="mt-1 text-sm text-ink/65">Draws are free while Obsession runs on devnet.</p>
+              <p className="mt-3 text-xs uppercase tracking-[0.28em] text-ink/45 sm:mt-2">
                 Sealed on-chain card draw with a compact oracle reading.
               </p>
             </div>
           </div>
 
           {needsFunding && (
-            <div className="mt-4 rounded-none border-4 border-red-500 bg-red-950/40 p-4 text-sm text-red-200">
-              <p className="font-black uppercase tracking-widest text-red-300">No devnet SOL</p>
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <p className="font-bold uppercase tracking-widest text-red-600">No devnet SOL</p>
               <p className="mt-2 leading-6">You need a little devnet SOL in your wallet to start.</p>
               <a
                 href={DEVNET_FAUCET_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-block rounded-none border border-red-100 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-100"
+                className="mt-3 inline-block rounded-full border border-red-300 px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-700"
               >
                 Get devnet SOL
               </a>
@@ -441,7 +441,7 @@ export function PullScreen({
           <button
             onClick={handleSetup}
             disabled={delegating}
-            className="mt-4 w-full rounded-none border-4 border-ink bg-flare px-6 py-4 text-base font-black uppercase tracking-widest text-paper active:translate-y-1 disabled:opacity-50"
+            className="btn-gradient mt-4 w-full rounded-full px-6 py-4 text-base font-bold uppercase tracking-widest transition-transform hover:-translate-y-0.5 disabled:opacity-50"
           >
             {delegating ? 'Opening...' : 'Start drawing'}
           </button>
@@ -449,25 +449,25 @@ export function PullScreen({
       )}
 
       {delegated && (
-        <div className="flex w-full flex-col items-center gap-3">
+        <div className="mt-6 flex w-full flex-col items-center gap-3">
           {!result && (
-            <div className="w-full border-4 border-flare bg-flare/10 p-2 text-center">
-              <p className="text-xs font-black uppercase tracking-widest text-flare">
+            <div className="w-full rounded-2xl border border-flare/20 bg-flare/5 p-3 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-flare">
                 Draw price {PACK_PRICE_SOL[category].toFixed(3)} SOL — waived while Obsession runs on devnet.
               </p>
             </div>
           )}
           {pityDue && !result && (
-            <div className="w-full border-4 border-paper bg-paper/10 p-2 text-center">
-              <p className="text-xs font-black uppercase tracking-widest text-paper">
+            <div className="w-full rounded-2xl border border-ink/10 bg-ink/5 p-3 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-ink/70">
                 The ledger tips in your favor — {pitySinceGrand}/{PITY_THRESHOLD}. A Grand Revelation is due.
               </p>
             </div>
           )}
 
           <div
-            className={`w-full border-4 bg-paper p-3 text-center shadow-[6px_6px_0_#18171b] ${
-              result && rarityStyle ? rarityStyle.ring : 'border-ink'
+            className={`w-full rounded-3xl border bg-paper p-5 text-center md:p-6 ${
+              result && rarityStyle ? rarityStyle.ring : 'border-ink/10'
             }`}
           >
             {result && rarityStyle ? (
@@ -485,41 +485,41 @@ export function PullScreen({
                       <img
                         src={CARD_IMAGE[resultCategory ?? category]}
                         alt={result.name}
-                        className="h-full w-full rounded-none border-2 border-ink object-cover drop-shadow-[6px_6px_0_#fd1789]"
+                        className="h-full w-full rounded-xl border border-ink/10 object-cover drop-shadow-[0_10px_24px_rgba(91,79,232,0.3)]"
                       />
                     </div>
                   </div>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col items-center gap-2 md:items-start animate-[rise-in_500ms_ease-out_450ms_both]">
                   {resultCategory && (
-                    <span className="text-[10px] font-black uppercase tracking-widest text-ink/60">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-ink/45">
                       Your draw · {getCategory(resultCategory).label}
                     </span>
                   )}
-                  <span className={`inline-block px-2 py-1 text-xs font-black uppercase tracking-widest ${rarityStyle.badge}`}>
+                  <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest ${rarityStyle.badge}`}>
                     {rarityStyle.label}
                   </span>
-                  <div className="text-2xl font-black uppercase text-ink">{result.name}</div>
-                  <p className="text-sm italic text-ink/70">"{result.reading}"</p>
+                  <div className="text-2xl font-black tracking-tight text-ink">{result.name}</div>
+                  <p className="text-sm italic text-ink/65">"{result.reading}"</p>
                   {result.special && (
-                    <div className="mt-1 flex w-full items-center gap-3 rounded-none border-2 border-flare/60 bg-ink/5 p-3 text-left">
+                    <div className="mt-1 flex w-full items-center gap-3 rounded-2xl border border-flare/25 bg-ink/5 p-3 text-left">
                       <img
                         src={SPECIAL_CARD.image}
                         alt={`${SPECIAL_CARD.name} — locked`}
-                        className="h-16 w-12 shrink-0 rounded-none border-2 border-flare/60 object-cover grayscale"
+                        className="h-16 w-12 shrink-0 rounded-lg border border-flare/25 object-cover grayscale"
                       />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-flare">🔒 Special occasion draw</p>
-                        <p className="mt-1 text-xs font-black uppercase text-ink">{SPECIAL_CARD.name} · Coming soon</p>
-                        <p className="mt-1 text-[11px] leading-4 text-ink/70">{SPECIAL_CARD.reading}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-flare">🔒 Special occasion draw</p>
+                        <p className="mt-1 text-xs font-bold uppercase text-ink">{SPECIAL_CARD.name} · Coming soon</p>
+                        <p className="mt-1 text-[11px] leading-4 text-ink/65">{SPECIAL_CARD.reading}</p>
                       </div>
                     </div>
                   )}
                   {intention && (
-                    <p className="border-l-2 border-flare pl-2 text-left text-[11px] font-bold text-ink/70">Wish: {intention}</p>
+                    <p className="border-l-2 border-flare pl-2 text-left text-[11px] font-bold text-ink/65">Wish: {intention}</p>
                   )}
                   {latencyMs !== null && (
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-ink/60">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-ink/45">
                       Sealed by MagicBlock VRF · resolved in {latencyMs}ms
                     </p>
                   )}
@@ -530,7 +530,7 @@ export function PullScreen({
                           href={`https://explorer.solana.com/address/${mintedAddress}?cluster=devnet`}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex w-full items-center justify-center gap-2 rounded-none border-4 border-flare bg-flare/10 px-4 py-3 text-xs font-black uppercase tracking-widest text-flare active:translate-y-1"
+                          className="flex w-full items-center justify-center gap-2 rounded-full border border-flare/30 bg-flare/10 px-4 py-3 text-xs font-bold uppercase tracking-widest text-flare transition-transform hover:-translate-y-0.5"
                         >
                           ✦ Minted — View on Explorer ↗
                         </a>
@@ -538,7 +538,7 @@ export function PullScreen({
                         <button
                           onClick={handleMint}
                           disabled={minting}
-                          className="w-full rounded-none border-4 border-ink bg-ink px-4 py-3 text-xs font-black uppercase tracking-widest text-paper active:translate-y-1 disabled:opacity-50"
+                          className="w-full rounded-full bg-ink px-4 py-3 text-xs font-bold uppercase tracking-widest text-paper transition-colors hover:bg-flare disabled:opacity-50"
                         >
                           {minting ? 'Minting...' : 'Claim as NFT'}
                         </button>
@@ -555,7 +555,7 @@ export function PullScreen({
                 <img
                   src={CARD_IMAGE[category]}
                   alt={`${getCategory(category).label} card pack`}
-                  className="w-full rounded-none border-2 border-ink object-contain drop-shadow-[5px_5px_0_#fd1789]"
+                  className="w-full rounded-xl border border-ink/10 object-contain drop-shadow-[0_10px_24px_rgba(91,79,232,0.25)]"
                 />
               </div>
             )}
@@ -563,7 +563,7 @@ export function PullScreen({
             <button
               onClick={handlePull}
               disabled={pulling}
-              className="mt-4 mx-auto w-[min(90%,18rem)] rounded-none border-4 border-ink bg-flare px-6 py-3 text-lg font-black uppercase text-paper active:translate-y-1 disabled:opacity-50 md:px-8 md:py-5 md:text-xl"
+              className="btn-gradient mt-4 mx-auto w-[min(90%,18rem)] rounded-full px-6 py-3 text-lg font-bold transition-transform hover:-translate-y-0.5 disabled:opacity-50 md:px-8 md:py-5 md:text-xl"
             >
               {pulling ? 'Consulting Obsession...' : result ? 'Draw Again' : 'Draw'}
             </button>
@@ -572,7 +572,7 @@ export function PullScreen({
       )}
 
       {error && (
-        <div className="w-full [overflow-wrap:anywhere] border-4 border-red-500 bg-red-950/40 p-2 text-center text-sm text-red-300">
+        <div className="mt-4 w-full [overflow-wrap:anywhere] rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
           {error}
         </div>
       )}

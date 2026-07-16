@@ -6,10 +6,17 @@ import { CategorySelect } from './components/CategorySelect'
 import { DrawScreen } from './components/DrawScreen'
 import { CollectionScreen } from './components/CollectionScreen'
 import { PrivacyPolicyScreen, TermsOfUseScreen } from './components/PolicyScreen'
+import { PlatformHome } from './PlatformHome'
 import type { CardInfo, Rarity } from './components/cardRegistry'
 import type { Category } from './components/categories'
 
-type Screen = 'landing' | 'categories' | 'draw' | 'pull' | 'collection' | 'profile' | 'privacy' | 'terms'
+type Screen = 'landing' | 'platform' | 'categories' | 'draw' | 'pull' | 'worldcup' | 'collection' | 'profile' | 'privacy' | 'terms'
+
+// The World Cup deck only needs its screen once a player actually opens it —
+// same lazy-load treatment as the wallet-dependent Tarot screens below.
+const WorldCupPullScreen = lazy(() =>
+  import('./decks/worldcup/WorldCupPullScreen').then(({ WorldCupPullScreen }) => ({ default: WorldCupPullScreen }))
+)
 
 // This-session-only "just drew" indicator for the navbar — the real, persistent
 // record lives on-chain and is what ProfileScreen reads independently.
@@ -35,8 +42,16 @@ function ObsessionApp() {
   }
 
   const content = screen === 'landing'
-    ? <LandingPage onStart={() => setScreen('categories')} />
-    : screen === 'categories'
+    ? <LandingPage onStart={() => setScreen('platform')} />
+    : screen === 'platform'
+      ? <PlatformHome onSelect={(deck) => setScreen(deck === 'tarot' ? 'categories' : 'worldcup')} />
+      : screen === 'worldcup'
+        ? (
+          <Suspense fallback={<LoadingReading />}>
+            <WorldCupPullScreen onChangeDeck={() => setScreen('platform')} />
+          </Suspense>
+        )
+      : screen === 'categories'
       ? (
         <CategorySelect
           onSelect={(next, nextIntention) => { setCategory(next); setIntention(nextIntention); setScreen('draw') }}
@@ -70,7 +85,7 @@ function ObsessionApp() {
   return (
     <AppShell
       lastDraw={lastDraw}
-      onHome={() => setScreen('categories')}
+      onHome={() => setScreen('platform')}
       onDraw={() => setScreen('draw')}
       onCollection={() => setScreen('collection')}
       onProfile={() => setScreen('profile')}

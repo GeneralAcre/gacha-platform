@@ -29,7 +29,7 @@ export function AppShell({
 }) {
   return (
     // pb keeps content clear of the phone-only fixed bottom nav
-    <div className={`flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-flare text-ink ${showNavbar ? 'pb-16 md:pb-0' : ''}`}>
+    <div className={`flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-canvas text-ink ${showNavbar ? 'pb-16 md:pb-0' : ''}`}>
       {showNavbar && <Navbar lastDraw={lastDraw} onHome={onHome} onDraw={onDraw} onCollection={onCollection} onProfile={onProfile} />}
       <main className="flex flex-1 flex-col">{children}</main>
       {showFooter && (

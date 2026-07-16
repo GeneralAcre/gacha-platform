@@ -9,3 +9,10 @@ test-ledger
 .surfpool
 .gstack/
 .vercel
+
+# backend (Moments / TxLINE)
+backend/.env
+backend/*.env
+backend/devnet-keypair.json
+backend/.txline-session.json
+backend/dist

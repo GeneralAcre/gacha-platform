@@ -1,21 +1,28 @@
-@import url('https://fonts.cdnfonts.com/css/kdam-thmor-pro');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #18171b;
-  --color-flare: #f51972;
-  --color-paper: #f7ddbb;
+  --color-ink: #0a0a0a;
+  --color-flare: #5b4fe8;
+  --color-paper: #ffffff;
+  --color-canvas: #ebe9e5;
 }
 
 :root {
-  color-scheme: dark;
-  font: 16px/1.4 'Kdam Thmor Pro', sans-serif;
+  color-scheme: light;
+  font: 16px/1.4 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 .font-kdam {
-  font-family: 'Kdam Thmor Pro', sans-serif;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Iridescent gradient used sparingly for the app's primary calls to action. */
+.btn-gradient {
+  background: linear-gradient(135deg, #bfe3ff 0%, #cbb8ff 50%, #ffc2e6 100%);
+  color: #0a0a0a;
 }
 
 html,
@@ -23,7 +30,7 @@ body,
 #root {
   min-height: 100svh;
   margin: 0;
-  background: #f51972;
+  background: #ebe9e5;
 }
 
 html {
@@ -53,8 +60,8 @@ textarea {
 }
 
 @keyframes card-glow {
-  0%, 100% { filter: drop-shadow(0 0 6px rgba(253, 23, 137, 0.45)); }
-  50% { filter: drop-shadow(0 0 22px rgba(253, 23, 137, 0.85)); }
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(91, 79, 232, 0.35)); }
+  50% { filter: drop-shadow(0 0 22px rgba(91, 79, 232, 0.65)); }
 }
 
 @keyframes rise-in {
@@ -83,59 +90,59 @@ textarea {
 
 /* Recolor the third-party wallet-adapter button to match the palette */
 .wallet-adapter-button-trigger {
-  background-color: #f51972 !important;
-  color: #18171b !important;
-  border: 3px solid #18171b !important;
-  border-radius: 0 !important;
-  font-weight: 900 !important;
+  background-color: #0a0a0a !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
   text-transform: uppercase;
 }
 
 .wallet-adapter-button:not([disabled]):hover {
-  background-color: #f7ddbb !important;
-  color: #18171b !important;
+  background-color: #5b4fe8 !important;
+  color: #ffffff !important;
 }
 
 .wallet-adapter-modal,
 .wallet-adapter-modal-container {
-  color: #18171b !important;
+  color: #0a0a0a !important;
 }
 
 /* Style the wallet modal to match site design */
 .wallet-adapter-modal-container {
-  background-color: rgba(24, 23, 27, 0.3) !important;
+  background-color: rgba(10, 10, 10, 0.5) !important;
 }
 
 .wallet-adapter-modal {
-  background-color: #f7ddbb !important;
-  border: 4px solid #18171b !important;
-  border-radius: 0 !important;
-  box-shadow: 8px 8px 0 #18171b !important;
-  color: #18171b !important;
+  background-color: #ffffff !important;
+  border: 1px solid rgba(10, 10, 10, 0.1) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 50px -12px rgba(10, 10, 10, 0.25) !important;
+  color: #0a0a0a !important;
 }
 
 .wallet-adapter-modal-title {
-  color: #18171b !important;
-  font-weight: 900 !important;
-  text-transform: uppercase !important;
-  font-family: 'Kdam Thmor Pro', sans-serif !important;
+  color: #0a0a0a !important;
+  font-weight: 800 !important;
+  text-transform: none !important;
+  font-family: 'Inter', sans-serif !important;
   font-size: 1.25rem !important;
-  letter-spacing: 0.08em !important;
+  letter-spacing: -0.02em !important;
 }
 
 .wallet-adapter-modal-content {
-  color: #18171b !important;
+  color: #0a0a0a !important;
 }
 
 .wallet-adapter-modal-content p {
-  color: #18171b !important;
+  color: #0a0a0a !important;
   font-weight: 500 !important;
 }
 
 .wallet-adapter-modal-middle {
-  background-color: #f5e3cb !important;
-  border-top: 2px solid #18171b !important;
-  border-bottom: 2px solid #18171b !important;
+  background-color: #f7f6f3 !important;
+  border-top: 1px solid rgba(10, 10, 10, 0.1) !important;
+  border-bottom: 1px solid rgba(10, 10, 10, 0.1) !important;
 }
 
 .wallet-adapter-modal-list {
@@ -144,26 +151,26 @@ textarea {
 
 .wallet-adapter-modal-list-item {
   background-color: transparent !important;
-  border: 3px solid #18171b !important;
-  border-radius: 0 !important;
-  color: #18171b !important;
+  border: 1px solid rgba(10, 10, 10, 0.12) !important;
+  border-radius: 12px !important;
+  color: #0a0a0a !important;
   transition: all 0.2s ease !important;
 }
 
 .wallet-adapter-modal-list-item:hover {
-  background-color: #f51972 !important;
-  color: #f7ddbb !important;
+  background-color: #0a0a0a !important;
+  color: #ffffff !important;
 }
 
 .wallet-adapter-modal-button-close {
-  background-color: #f51972 !important;
-  border: 3px solid #18171b !important;
-  border-radius: 0 !important;
-  color: #f7ddbb !important;
-  font-weight: 900 !important;
+  background-color: #0a0a0a !important;
+  border: none !important;
+  border-radius: 999px !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 .wallet-adapter-modal-button-close:hover {
-  background-color: #f51972 !important;
-  color: #f7ddbb !important;
+  background-color: #5b4fe8 !important;
+  color: #ffffff !important;
 }

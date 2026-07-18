@@ -63,8 +63,8 @@ export const CollectionCardArt = forwardRef<SVGSVGElement, { entry: CollectionEn
           {/* Scrim: darkens top (badges) and bottom (name bar) so text reads over the photo. */}
           <rect x="0" y="0" width="100" height="140" fill={`url(#scrim-${uid})`} />
 
-          {/* top chip */}
-          <rect x="6" y="6" width="24" height="10" rx="5" fill="#ffffff" />
+          {/* top chip: filled with the round's accent color so rounds read apart at a glance */}
+          <rect x="6" y="6" width="24" height="10" rx="5" fill={accent} />
           <text x="18" y="13.2" fill="#0a0a0a" fontSize="4.4" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
             {chipLabel}
           </text>
@@ -109,13 +109,10 @@ export const CollectionCardArt = forwardRef<SVGSVGElement, { entry: CollectionEn
             </>
           )}
 
-          {/* name bar */}
+          {/* name bar: both teams on one row, one color -- avoids the mismatched two-tone/two-line look */}
           <rect x="0" y="108" width="100" height="32" fill="#000000a8" />
-          <text x="50" y="122" fill="#ffffff" fontSize="6.2" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
-            {entry.team1}
-          </text>
-          <text x="50" y="132" fill={accent} fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
-            vs {entry.team2}
+          <text x="50" y="127" fill="#ffffff" fontSize="5.6" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+            {entry.team1} vs {entry.team2}
           </text>
         </g>
       </svg>

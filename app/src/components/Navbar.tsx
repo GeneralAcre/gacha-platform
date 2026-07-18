@@ -47,15 +47,6 @@ export function Navbar({
     <header className="sticky top-0 z-30 border-b border-paper/10 bg-ink [padding-top:max(0.75rem,env(safe-area-inset-top))]">
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-4 py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Open menu"
-            aria-expanded={menuOpen}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-paper/15 text-paper transition-colors hover:border-paper/40 md:hidden"
-          >
-            <HamburgerIcon />
-          </button>
           <button onClick={onHome} className="flex min-w-0 items-center gap-2 text-left [&>span]:hidden" aria-label="Return to Moment home">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-paper/20 text-flare">✦</span>
             <img src="/Moment-logo.png" alt="Moment" className="h-8 w-auto" />
@@ -79,6 +70,15 @@ export function Navbar({
           <div className="origin-right scale-90">
             <WalletMultiButton />
           </div>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-paper/15 text-paper transition-colors hover:border-paper/40 md:hidden"
+          >
+            <HamburgerIcon />
+          </button>
         </div>
       </div>
 
@@ -101,7 +101,7 @@ export function Navbar({
             onClick={() => setMenuOpen(false)}
             className="fixed inset-0 z-20 cursor-default bg-ink/60"
           />
-          <div className="absolute left-4 top-full z-30 mt-2 w-56 rounded-2xl border border-paper/10 bg-void p-2 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)]">
+          <div className="absolute right-4 top-full z-30 mt-2 w-56 rounded-2xl border border-paper/10 bg-void p-2 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)]">
             {[
               { label: 'Draw', onClick: onDraw },
               { label: 'Collection', onClick: onCollection },
@@ -121,30 +121,5 @@ export function Navbar({
         </>
       )}
     </header>
-  )
-}
-
-/** Phone-only bottom navigation. Hidden from md up, where the Navbar shows these buttons. */
-export function MobileNav({
-  onDraw,
-  onCollection,
-  onProfile,
-}: {
-  onDraw: () => void
-  onCollection: () => void
-  onProfile: () => void
-}) {
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 flex gap-1.5 border-t border-paper/10 bg-ink px-2 pt-2 [padding-bottom:max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
-      <button onClick={onDraw} className="h-11 flex-1 rounded-full border border-paper/15 text-[10px] font-bold uppercase tracking-widest text-paper active:bg-paper/10">
-        Draw
-      </button>
-      <button onClick={onCollection} className="h-11 flex-1 rounded-full border border-paper/15 text-[10px] font-bold uppercase tracking-widest text-paper active:bg-paper/10">
-        Collection
-      </button>
-      <button onClick={onProfile} className="h-11 flex-1 rounded-full border border-paper/15 text-[10px] font-bold uppercase tracking-widest text-paper active:bg-paper/10">
-        Profile
-      </button>
-    </nav>
   )
 }

@@ -77,13 +77,10 @@ export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; c
             POINT SWING{moment.matchMinute !== undefined ? ` · ${moment.matchMinute}'` : ''}
           </text>
 
-          {/* name bar */}
+          {/* name bar: both teams on one row, one color -- avoids the mismatched two-tone/two-line look */}
           <rect x="0" y="108" width="100" height="32" fill="#000000a8" />
-          <text x="50" y="122" fill="#ffffff" fontSize="6.2" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
-            {moment.team}
-          </text>
-          <text x="50" y="132" fill={theme.accent} fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
-            vs {moment.opponent}
+          <text x="50" y="127" fill="#ffffff" fontSize="5.6" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+            {moment.team} vs {moment.opponent}
           </text>
         </g>
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Navbar, MobileNav, type NavbarLastDraw } from './Navbar'
+import { Navbar, type NavbarLastDraw } from './Navbar'
 import { Footer } from './Footer'
 
 export function AppShell({
@@ -30,8 +30,7 @@ export function AppShell({
   showFooter?: boolean
 }) {
   return (
-    // pb keeps content clear of the phone-only fixed bottom nav
-    <div className={`flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-canvas text-ink ${showNavbar ? 'pb-16 md:pb-0' : ''}`}>
+    <div className="flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-canvas text-ink">
       {showNavbar && (
         <Navbar
           lastDraw={lastDraw}
@@ -46,7 +45,6 @@ export function AppShell({
       {showFooter && (
         <Footer onHome={onHome} onDraw={onDraw} onCollection={onCollection} onProfile={onProfile} onFaq={onFaq} onPrivacy={onPrivacy} onTerms={onTerms} />
       )}
-      {showNavbar && <MobileNav onDraw={onDraw} onCollection={onCollection} onProfile={onProfile} />}
     </div>
   )
 }

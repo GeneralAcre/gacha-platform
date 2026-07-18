@@ -136,36 +136,37 @@ export function MarketplaceScreen() {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col px-4 py-10 md:px-6 md:py-14">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 pb-4">
+    <div className="w-full flex-1 bg-ink text-paper">
+      <div className="mx-auto flex w-full max-w-6xl flex-col px-4 py-10 md:px-6 md:py-14">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-ink/50">Peer-to-peer · on-chain escrow</p>
-          <h1 className="mt-2 text-3xl font-black leading-none tracking-tight text-ink md:text-5xl">Marketplace</h1>
+          <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-white/50">Peer-to-peer · on-chain escrow</p>
+          <h1 className="mt-2 text-3xl font-black leading-none tracking-tight text-white md:text-5xl">Marketplace</h1>
         </div>
         <button
           type="button"
           onClick={load}
           disabled={loading}
-          className="rounded-full border border-ink/12 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-ink hover:border-ink disabled:opacity-50"
+          className="rounded-full border border-white/15 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:border-white disabled:opacity-50"
         >
           {loading ? 'Refreshing…' : 'Refresh'}
         </button>
       </header>
 
       {!wallet.publicKey && (
-        <p className="mt-6 rounded-2xl border border-ink/10 bg-paper p-4 text-center text-sm text-ink/60">
+        <p className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center text-sm text-white/60">
           Connect your wallet to buy, list, or cancel listings.
         </p>
       )}
 
       {error && (
-        <div className="mt-4 w-full [overflow-wrap:anywhere] rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
+        <div className="mt-4 w-full [overflow-wrap:anywhere] rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-sm text-red-300">
           {error}
         </div>
       )}
 
       {!loading && listings.length === 0 && (
-        <p className="mt-10 text-center text-sm text-ink/45">No active Moment listings yet.</p>
+        <p className="mt-10 text-center text-sm text-white/45">No active Moment listings yet.</p>
       )}
 
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -174,18 +175,18 @@ export function MarketplaceScreen() {
           const isOwn = wallet.publicKey?.equals(listing.seller) ?? false
           const busy = busyPda === pdaKey
           return (
-            <div key={pdaKey} className="flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-paper p-3">
+            <div key={pdaKey} className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-3">
               <MomentListingArt listing={listing} />
-              <p className="mt-3 truncate text-[9px] font-bold uppercase tracking-widest text-ink/40">
+              <p className="mt-3 truncate text-[9px] font-bold uppercase tracking-widest text-white/40">
                 World Cup deck · seller {truncate(listing.seller)}
               </p>
-              <p className="text-lg font-black text-ink">{formatSol(listing.priceLamports)} SOL</p>
+              <p className="text-lg font-black text-white">{formatSol(listing.priceLamports)} SOL</p>
               <button
                 type="button"
                 onClick={() => (isOwn ? handleCancel(listing) : handleBuy(listing))}
                 disabled={!wallet.publicKey || busy}
                 className={`mt-3 w-full rounded-full px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 ${
-                  isOwn ? 'border border-ink/15 text-ink hover:border-ink' : 'bg-ink text-paper hover:bg-flare'
+                  isOwn ? 'border border-white/20 text-white hover:border-white' : 'bg-white text-ink hover:bg-[#ffd447]'
                 }`}
               >
                 {busy ? 'Working…' : isOwn ? 'Cancel Listing' : 'Buy'}
@@ -193,6 +194,7 @@ export function MarketplaceScreen() {
             </div>
           )
         })}
+      </div>
       </div>
     </div>
   )

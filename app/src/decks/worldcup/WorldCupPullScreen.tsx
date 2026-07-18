@@ -187,7 +187,7 @@ export function WorldCupPullScreen() {
   }, [handleOpenPack, openedMoment, paying])
 
   return (
-    <div className="w-full bg-ink text-paper">
+    <div className="w-full flex-1 bg-ink text-paper">
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-0 px-4 py-10 md:py-14">
       <div className="w-full">
         <CompetitionPackSelector selected={selectedCompetition} onPackClick={handlePackClick} />

@@ -249,61 +249,62 @@ export function ProfileScreen() {
   const walletAddress = wallet.publicKey?.toBase58() ?? null
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-14">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink/10 pb-5">
+    <div className="w-full flex-1 bg-ink text-paper">
+      <div className="mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-14">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ink/45">Player profile</p>
-          <h1 className="mt-2 text-4xl font-black tracking-tight text-ink md:text-5xl">My collection</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">Player profile</p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-white md:text-5xl">My collection</h1>
           {walletAddress ? (
-            <p className="mt-2 font-mono text-xs text-ink/55">
+            <p className="mt-2 font-mono text-xs text-white/55">
               Connected · {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}
             </p>
           ) : (
-            <p className="mt-2 text-xs font-bold text-ink/55">Connect a wallet to see your minted cards.</p>
+            <p className="mt-2 text-xs font-bold text-white/55">Connect a wallet to see your minted cards.</p>
           )}
         </div>
-        <div className="rounded-2xl border border-ink/10 bg-paper px-5 py-3 text-center">
-          <p className="text-2xl font-black text-ink">{owned.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-ink/45">Held now</p>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-center">
+          <p className="text-2xl font-black text-white">{owned.length}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/45">Held now</p>
         </div>
       </div>
 
       {error && (
-        <div className="mt-4 w-full [overflow-wrap:anywhere] rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
+        <div className="mt-4 w-full [overflow-wrap:anywhere] rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-sm text-red-300">
           {error}
         </div>
       )}
 
       {!walletAddress ? null : loading ? (
-        <div className="mt-10 rounded-2xl border border-ink/10 bg-paper p-8 text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-ink/55">Reading the chain...</p>
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+          <p className="text-sm font-bold uppercase tracking-widest text-white/55">Reading the chain...</p>
         </div>
       ) : (
         <>
           {myListings.length > 0 && (
             <div className="mt-8">
-              <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-ink/45">Your active listings</p>
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/45">Your active listings</p>
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {myListings.map((listing) => (
-                  <div key={listing.listingPda.toBase58()} className="flex items-center justify-between gap-3 rounded-2xl border border-flare/25 bg-flare/5 p-4">
+                  <div key={listing.listingPda.toBase58()} className="flex items-center justify-between gap-3 rounded-2xl border border-flare/30 bg-flare/10 p-4">
                     <div className="flex min-w-0 items-center gap-3">
                       <OwnedMomentArt
                         momentKind={listing.momentKind}
                         rarity={listing.rarity}
                         deltaBps={listing.deltaBps}
                         fixtureId={listing.fixtureId}
-                        className="h-20 w-14 shrink-0 rounded-lg border border-ink/10 bg-ink object-cover"
+                        className="h-20 w-14 shrink-0 rounded-lg border border-white/10 object-cover"
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-ink/45">Fixture #{listing.fixtureId}</p>
-                        <p className="font-black text-ink">{(listing.priceLamports / web3.LAMPORTS_PER_SOL).toFixed(3)} SOL</p>
+                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-white/45">Fixture #{listing.fixtureId}</p>
+                        <p className="font-black text-white">{(listing.priceLamports / web3.LAMPORTS_PER_SOL).toFixed(3)} SOL</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleCancel(listing)}
                       disabled={busyMint === listing.mint.toBase58()}
-                      className="shrink-0 rounded-full border border-ink/15 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ink hover:border-ink disabled:opacity-50"
+                      className="shrink-0 rounded-full border border-white/20 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:border-white disabled:opacity-50"
                     >
                       {busyMint === listing.mint.toBase58() ? 'Working…' : 'Cancel'}
                     </button>
@@ -314,9 +315,9 @@ export function ProfileScreen() {
           )}
 
           {owned.length === 0 && myListings.length === 0 ? (
-            <div className="mt-10 rounded-2xl border border-ink/10 bg-paper p-8 text-center">
-              <p className="text-2xl font-black tracking-tight text-ink">Your cabinet is waiting.</p>
-              <p className="mt-2 text-sm text-ink/55">Draw a fortune and claim it as an NFT to begin your collection.</p>
+            <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+              <p className="text-2xl font-black tracking-tight text-white">Your cabinet is waiting.</p>
+              <p className="mt-2 text-sm text-white/55">Draw a fortune and claim it as an NFT to begin your collection.</p>
             </div>
           ) : (
             <div className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -324,25 +325,25 @@ export function ProfileScreen() {
                 const mintKey = item.mint.toBase58()
                 const isBusy = busyMint === mintKey
                 return (
-                  <div key={mintKey} className="flex flex-col gap-3 rounded-2xl border border-ink/10 bg-paper p-3">
+                  <div key={mintKey} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                     {item.kind === 'card' ? (
                       <div className="flex gap-4">
                         <img
                           src={item.card.image}
                           alt={`${item.card.name} card art`}
-                          className="h-36 w-24 shrink-0 rounded-xl border border-ink/10 bg-ink object-cover"
+                          className="h-36 w-24 shrink-0 rounded-xl border border-white/10 object-cover"
                         />
                         <div className="min-w-0">
                           <span className="text-[10px] font-bold uppercase tracking-widest text-flare">
                             {RARITY_LABEL[item.card.rarity]} · {getCategory(item.category).label}
                           </span>
-                          <div className="mt-2 font-black tracking-tight text-ink">{item.card.name}</div>
-                          <p className="mt-1 text-xs italic text-ink/65">"{item.card.reading}"</p>
+                          <div className="mt-2 font-black tracking-tight text-white">{item.card.name}</div>
+                          <p className="mt-1 text-xs italic text-white/65">"{item.card.reading}"</p>
                           <a
                             href={`https://explorer.solana.com/address/${mintKey}?cluster=devnet`}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-2 inline-block text-[10px] font-bold uppercase tracking-widest text-ink/35"
+                            className="mt-2 inline-block text-[10px] font-bold uppercase tracking-widest text-white/35"
                           >
                             View on Explorer ↗
                           </a>
@@ -355,7 +356,7 @@ export function ProfileScreen() {
                           rarity={item.rarity}
                           deltaBps={item.deltaBps}
                           fixtureId={item.fixtureId}
-                          className="h-36 w-24 shrink-0 rounded-xl border border-ink/10 bg-ink object-cover"
+                          className="h-36 w-24 shrink-0 rounded-xl border border-white/10 object-cover"
                         />
                         <div className="min-w-0">
                           <span
@@ -364,13 +365,13 @@ export function ProfileScreen() {
                           >
                             {MOMENT_RARITY_STYLE[MOMENT_RARITY_BY_BYTE[item.rarity] ?? 'common'].label} · {item.momentKind === 1 ? 'Favorite Flip' : 'Odds Swing'}
                           </span>
-                          <div className="mt-2 font-black tracking-tight text-ink">Fixture #{item.fixtureId}</div>
-                          <p className="mt-1 text-xs text-ink/65">{Math.round(item.deltaBps / 100)} point swing</p>
+                          <div className="mt-2 font-black tracking-tight text-white">Fixture #{item.fixtureId}</div>
+                          <p className="mt-1 text-xs text-white/65">{Math.round(item.deltaBps / 100)} point swing</p>
                           <a
                             href={`https://explorer.solana.com/address/${mintKey}?cluster=devnet`}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-2 inline-block text-[10px] font-bold uppercase tracking-widest text-ink/35"
+                            className="mt-2 inline-block text-[10px] font-bold uppercase tracking-widest text-white/35"
                           >
                             View on Explorer ↗
                           </a>
@@ -378,7 +379,7 @@ export function ProfileScreen() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 border-t border-ink/10 pt-3">
+                    <div className="flex items-center gap-2 border-t border-white/10 pt-3">
                       <input
                         type="number"
                         min="0"
@@ -386,13 +387,13 @@ export function ProfileScreen() {
                         placeholder="Price in SOL"
                         value={listingDraft[mintKey] ?? ''}
                         onChange={(e) => setListingDraft((prev) => ({ ...prev, [mintKey]: e.target.value }))}
-                        className="w-full min-w-0 rounded-full border border-ink/15 px-3 py-2 text-xs text-ink outline-none focus:border-flare"
+                        className="w-full min-w-0 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs text-white outline-none focus:border-flare"
                       />
                       <button
                         type="button"
                         onClick={() => handleList(item.mint)}
                         disabled={isBusy}
-                        className="shrink-0 rounded-full bg-ink px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-paper hover:bg-flare disabled:opacity-50"
+                        className="shrink-0 rounded-full bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ink hover:bg-[#ffd447] disabled:opacity-50"
                       >
                         {isBusy ? 'Working…' : 'List'}
                       </button>
@@ -404,6 +405,7 @@ export function ProfileScreen() {
           )}
         </>
       )}
+      </div>
     </div>
   )
 }

@@ -84,7 +84,7 @@ export function CollectionScreen() {
   }, [collection])
 
   return (
-    <div className="w-full bg-ink text-paper">
+    <div className="w-full flex-1 bg-ink text-paper">
       <div className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Verified results + real-time TxLINE odds</p>
         <h1 className="mt-1 text-3xl font-black tracking-tight text-white md:text-4xl">World Cup 2026 Collection</h1>

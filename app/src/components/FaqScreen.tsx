@@ -65,18 +65,18 @@ const FAQ_ITEMS: FaqItem[] = [
 
 function FaqRow({ item, open, onToggle }: { item: FaqItem; open: boolean; onToggle: () => void }) {
   return (
-    <div className="rounded-2xl border border-ink/10 bg-paper">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03]">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
       >
-        <span className="text-sm font-bold text-ink">{item.question}</span>
-        <span className="shrink-0 text-ink/40">{open ? '−' : '+'}</span>
+        <span className="text-sm font-bold text-white">{item.question}</span>
+        <span className="shrink-0 text-white/40">{open ? '−' : '+'}</span>
       </button>
       {open && (
-        <p className="px-5 pb-4 text-sm leading-6 text-ink/65">{item.answer}</p>
+        <p className="px-5 pb-4 text-sm leading-6 text-white/65">{item.answer}</p>
       )}
     </div>
   )
@@ -86,11 +86,12 @@ export function FaqScreen() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 md:py-14">
-      <div className="border-b border-ink/10 pb-5">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-ink/45">Questions</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-ink md:text-5xl">FAQ</h1>
-        <p className="mt-2 text-sm text-ink/55">Common questions about how Moment actually works.</p>
+    <div className="w-full flex-1 bg-ink text-paper">
+      <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 md:py-14">
+      <div className="border-b border-white/10 pb-5">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">Questions</p>
+        <h1 className="mt-2 text-4xl font-black tracking-tight text-white md:text-5xl">FAQ</h1>
+        <p className="mt-2 text-sm text-white/55">Common questions about how Moment actually works.</p>
       </div>
 
       <div className="mt-6 flex flex-col gap-3">
@@ -102,6 +103,7 @@ export function FaqScreen() {
             onToggle={() => setOpenIndex((current) => (current === index ? null : index))}
           />
         ))}
+      </div>
       </div>
     </div>
   )

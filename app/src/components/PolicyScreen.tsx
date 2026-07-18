@@ -5,26 +5,28 @@ interface PolicySection {
 
 function PolicyScreen({ kicker, title, updated, sections }: { kicker: string; title: string; updated: string; sections: PolicySection[] }) {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 md:py-14">
-      <div className="border-b border-ink/10 pb-5">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-ink/45">{kicker}</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-ink md:text-5xl">{title}</h1>
-        <p className="mt-2 text-xs font-bold uppercase tracking-widest text-ink/40">Last updated {updated}</p>
+    <div className="w-full flex-1 bg-ink text-paper">
+      <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 md:py-14">
+      <div className="border-b border-white/10 pb-5">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">{kicker}</p>
+        <h1 className="mt-2 text-4xl font-black tracking-tight text-white md:text-5xl">{title}</h1>
+        <p className="mt-2 text-xs font-bold uppercase tracking-widest text-white/40">Last updated {updated}</p>
       </div>
 
       <div className="mt-6 flex flex-col gap-4">
         {sections.map((section) => (
-          <section key={section.heading} className="rounded-2xl border border-ink/10 bg-paper p-5">
+          <section key={section.heading} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <h2 className="text-sm font-bold uppercase tracking-widest text-flare">{section.heading}</h2>
             <div className="mt-2 flex flex-col gap-2">
               {section.body.map((paragraph, index) => (
-                <p key={index} className="text-sm leading-6 text-ink/65">
+                <p key={index} className="text-sm leading-6 text-white/65">
                   {paragraph}
                 </p>
               ))}
             </div>
           </section>
         ))}
+      </div>
       </div>
     </div>
   )

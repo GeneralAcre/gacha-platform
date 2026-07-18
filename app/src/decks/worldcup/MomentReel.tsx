@@ -32,7 +32,15 @@ function SealedTile() {
  * already resolved: a short fixed spin for the "opening the pack" beat, then a deceleration
  * onto the real MomentCardArt. Filler tiles are a generic sealed-pack glyph, never another
  * team's data — there is nothing to synthesize since these are real match events. */
-export function MomentReel({ moment, onLanded }: { moment: MomentResult; onLanded: () => void }) {
+export function MomentReel({
+  moment,
+  onLanded,
+  CardArt = MomentCardArt,
+}: {
+  moment: MomentResult
+  onLanded: () => void
+  CardArt?: typeof MomentCardArt
+}) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [phase, setPhase] = useState<'spin' | 'landing'>('spin')
   const [landed, setLanded] = useState(false)
@@ -105,7 +113,7 @@ export function MomentReel({ moment, onLanded }: { moment: MomentResult; onLande
               boxShadow: landed ? `0 0 18px 2px ${rarityAccent}80` : 'none',
             }}
           >
-            <MomentCardArt moment={moment} className="h-full w-full" />
+            <CardArt moment={moment} className="h-full w-full" />
           </div>
           {Array.from({ length: FILLER_AFTER_COUNT }).map((_, i) => (
             <SealedTile key={`a${i}`} />

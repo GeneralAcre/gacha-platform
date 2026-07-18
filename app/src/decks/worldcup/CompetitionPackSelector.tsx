@@ -8,7 +8,7 @@ import { PACK_PRICE_SOL } from './packPayment'
 // doesn't end up with an oversized column relative to the viewport.
 const ART_MAX_WIDTH = 'max-w-[132px] sm:max-w-[152px] md:max-w-[168px]'
 
-export function CompetitionPackSelector({ selected, onSelect, onEventPackClick }: { selected: string; onSelect: (id: string) => void; onEventPackClick: () => void }) {
+export function CompetitionPackSelector({ selected, onPackClick }: { selected: string; onPackClick: (id: string) => void }) {
   return (
     <section aria-label="Choose a pack">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
@@ -27,7 +27,7 @@ export function CompetitionPackSelector({ selected, onSelect, onEventPackClick }
               key={comp.id}
               type="button"
               disabled={!comp.live}
-              onClick={() => comp.id === 'event' ? onEventPackClick() : onSelect(comp.id)}
+              onClick={() => onPackClick(comp.id)}
               aria-pressed={isSelected}
               className={`group relative flex flex-col text-left transition-transform ${!comp.live ? 'cursor-not-allowed opacity-50' : 'hover:-translate-y-1'}`}
             >

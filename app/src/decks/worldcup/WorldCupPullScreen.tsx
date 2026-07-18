@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { fetchRecentMoments, triggerSimulatedMoments, explorerTxUrl, momentKey, type MomentResult } from './momentsApi'
 import { MomentCardArt, MomentShareButtons, useMomentCardDownload } from './MomentCardArt'
+import { MatchMomentCardArt } from './MatchMomentCardArt'
 import { MomentReel } from './MomentReel'
 import { MomentClaimButton } from './MomentClaimButton'
 import { MomentDetailModal } from './MomentDetailModal'
@@ -13,6 +14,15 @@ import { COMPETITIONS, DEFAULT_COMPETITION } from './competitions'
 import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
 import { PACK_PRICE_SOL, payForPack, friendlyPayError } from './packPayment'
 import { PackPurchaseModal } from './PackPurchaseModal'
+
+type CardArtComponent = typeof MomentCardArt
+
+// Every live pack pulls from the same real (or auto-sealed-on-demand) Moment queue and the
+// same claim-as-NFT flow -- only the card face differs, keyed by pack id.
+const CARD_ART_BY_PACK: Record<string, CardArtComponent> = {
+  event: MomentCardArt,
+  match: MatchMomentCardArt,
+}
 
 const POLL_INTERVAL_MS = 3000
 
@@ -32,9 +42,10 @@ export function WorldCupPullScreen() {
   const [payError, setPayError] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
   const [detailMoment, setDetailMoment] = useState<MomentResult | null>(null)
-  const [eventPaymentOpen, setEventPaymentOpen] = useState(false)
+  const [paymentPackOpen, setPaymentPackOpen] = useState(false)
   const [selectedCompetition, setSelectedCompetition] = useState(DEFAULT_COMPETITION)
   const selectedPack = COMPETITIONS.find((pack) => pack.id === selectedCompetition) ?? COMPETITIONS[0]
+  const CardArt = CARD_ART_BY_PACK[selectedCompetition] ?? MomentCardArt
 
   const seenRef = useRef<Set<string>>(new Set())
   const initializedRef = useRef(false)
@@ -84,7 +95,9 @@ export function WorldCupPullScreen() {
   // seconds of on-chain work the player never asked to wait for) and only once it's
   // confirmed do we pick a Moment to reveal: whatever real live-match swing is already
   // queued, or — since none is queued between matches, or for a demo — seal a fresh one
-  // on demand through the same real memo-tx pipeline.
+  // on demand through the same real memo-tx pipeline. Every pack (Event, Match) shares
+  // this exact mechanic — always claimable as an NFT, always the same real pipeline —
+  // only the reveal's card art differs.
   const handleOpenPack = useCallback(async () => {
     if (paying || openedMoment) return
     if (!wallet.publicKey || !wallet.sendTransaction) {
@@ -158,21 +171,18 @@ export function WorldCupPullScreen() {
 
   const handleDismiss = useCallback(() => setOpenedMoment(null), [])
 
-  const handleSelectCompetition = useCallback((id: string) => {
+  const handlePackClick = useCallback((id: string) => {
+    const pack = COMPETITIONS.find((p) => p.id === id)
+    if (!pack || !pack.live) return
     setSelectedCompetition(id)
     setQueue([])
     setOpenedMoment(null)
+    setPaymentPackOpen(true)
   }, [])
 
-  const handleEventPackClick = useCallback(() => {
-    setSelectedCompetition('event')
-    setOpenedMoment(null)
-    setEventPaymentOpen(true)
-  }, [])
-
-  const handleEventPayment = useCallback(() => {
+  const handlePackPayment = useCallback(() => {
     if (paying || openedMoment) return
-    setEventPaymentOpen(false)
+    setPaymentPackOpen(false)
     void handleOpenPack()
   }, [handleOpenPack, openedMoment, paying])
 
@@ -180,92 +190,92 @@ export function WorldCupPullScreen() {
     <div className="w-full bg-ink text-paper">
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-0 px-4 py-10 md:py-14">
       <div className="w-full">
-        <CompetitionPackSelector selected={selectedCompetition} onSelect={handleSelectCompetition} onEventPackClick={handleEventPackClick} />
+        <CompetitionPackSelector selected={selectedCompetition} onPackClick={handlePackClick} />
         <PackOddsPanel />
       </div>
 
-      {selectedPack.view === 'matches' ? (
+      <div className="mt-6 w-full max-w-4xl rounded-3xl border border-paper/10 bg-void p-5 shadow-[0_20px_50px_-24px_rgba(0,0,0,0.9)] md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed on devnet · real-time draw</p>
+            <p className="mt-1 text-lg font-black tracking-tight text-white">{selectedPack.label} Draws</p>
+          </div>
+          <span className="rounded-full bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#8fe3b0]">
+            {'≥'}20pt swing or flip {'→'} sealed
+          </span>
+        </div>
+
+        <div className="mt-4">
+          <LiveMatchTicker competition={selectedPack.sourceCompetition} />
+        </div>
+
+        {apiError && (
+          <div className="mt-4 w-full rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-[11px] text-red-300">
+            {apiError}
+          </div>
+        )}
+
+        <div className="mt-6 flex w-full flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-6">
+          {openedMoment ? (
+            <MomentReveal moment={openedMoment} CardArt={CardArt} queueCount={queue.length} onDismiss={handleDismiss} />
+          ) : (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <p className="text-sm font-bold uppercase tracking-widest text-white/80">
+                {queue.length > 0 ? `${queue.length} sealed pack${queue.length > 1 ? 's' : ''} ready` : 'Ready to open a pack'}
+              </p>
+              <p className="max-w-xs text-center text-xs text-white/40">
+                {queue.length > 0
+                  ? 'A real odds swing was just detected in a live match. Pay to open the pack and reveal the Moment card.'
+                  : 'Pay to seal and open a fresh pack right now.'}
+              </p>
+              <button
+                onClick={handleOpenPack}
+                disabled={paying}
+                className="mt-2 rounded-full bg-[#ffd447] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+              >
+                {paying ? 'Processing...' : `Open Pack — ${PACK_PRICE_SOL} SOL`}
+              </button>
+              {paying && payStatus && (
+                <p className="max-w-xs text-center text-[11px] font-bold text-[#ffd447]">{payStatus}</p>
+              )}
+              {!wallet.publicKey && (
+                <p className="text-[11px] font-bold uppercase tracking-widest text-white/30">Connect your wallet above to open a pack</p>
+              )}
+              {payError && (
+                <div className="w-full max-w-xs [overflow-wrap:anywhere] rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-[11px] text-red-300">
+                  {payError}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {recentMoments.length > 0 && (
+          <div className="mt-6">
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">Trending Draws</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {recentMoments.slice(0, 8).map((m) => (
+                <MomentTile key={momentKey(m)} moment={m} CardArt={CardArt} onOpen={() => setDetailMoment(m)} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {selectedPack.showCollectionGrid && (
         <div className="mt-6 flex w-full justify-center">
           <MatchCollection recentMoments={recentMoments} />
-        </div>
-      ) : (
-        <div className="mt-6 w-full max-w-4xl rounded-3xl border border-paper/10 bg-void p-5 shadow-[0_20px_50px_-24px_rgba(0,0,0,0.9)] md:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed on devnet · real-time draw</p>
-              <p className="mt-1 text-lg font-black tracking-tight text-white">Match Card Draws</p>
-            </div>
-            <span className="rounded-full bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#8fe3b0]">
-              {'≥'}20pt swing or flip {'→'} sealed
-            </span>
-          </div>
-
-          <div className="mt-4">
-            <LiveMatchTicker competition={selectedPack.sourceCompetition} />
-          </div>
-
-          {apiError && (
-            <div className="mt-4 w-full rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-[11px] text-red-300">
-              {apiError}
-            </div>
-          )}
-
-          <div className="mt-6 flex w-full flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-6">
-            {openedMoment ? (
-              <MomentReveal moment={openedMoment} queueCount={queue.length} onDismiss={handleDismiss} />
-            ) : (
-              <div className="flex flex-col items-center gap-3 py-6">
-                <p className="text-sm font-bold uppercase tracking-widest text-white/80">
-                  {queue.length > 0 ? `${queue.length} sealed pack${queue.length > 1 ? 's' : ''} ready` : 'Ready to open a pack'}
-                </p>
-                <p className="max-w-xs text-center text-xs text-white/40">
-                  {queue.length > 0
-                    ? 'A real odds swing was just detected in a live match. Pay to open the pack and reveal the Moment card.'
-                    : 'Pay to seal and open a fresh pack right now.'}
-                </p>
-                <button
-                  onClick={handleOpenPack}
-                  disabled={paying}
-                  className="mt-2 rounded-full bg-[#ffd447] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-50"
-                >
-                  {paying ? 'Processing...' : `Open Pack — ${PACK_PRICE_SOL} SOL`}
-                </button>
-                {paying && payStatus && (
-                  <p className="max-w-xs text-center text-[11px] font-bold text-[#ffd447]">{payStatus}</p>
-                )}
-                {!wallet.publicKey && (
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-white/30">Connect your wallet above to open a pack</p>
-                )}
-                {payError && (
-                  <div className="w-full max-w-xs [overflow-wrap:anywhere] rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-[11px] text-red-300">
-                    {payError}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {recentMoments.length > 0 && (
-            <div className="mt-6">
-              <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">Trending Draws</p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {recentMoments.slice(0, 8).map((m) => (
-                  <MomentTile key={momentKey(m)} moment={m} onOpen={() => setDetailMoment(m)} />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
         {detailMoment && <MomentDetailModal moment={detailMoment} onClose={() => setDetailMoment(null)} />}
-        {eventPaymentOpen && (
+        {paymentPackOpen && selectedPack.art && (
           <PackPurchaseModal
-            packArt="/worldcup-card/Event-Pull-card.png"
-            packLabel="Event Pack"
+            packArt={selectedPack.art}
+            packLabel={selectedPack.label}
             paying={paying}
-            onCancel={() => setEventPaymentOpen(false)}
-            onConfirm={handleEventPayment}
+            onCancel={() => setPaymentPackOpen(false)}
+            onConfirm={handlePackPayment}
           />
         )}
       </div>
@@ -273,7 +283,7 @@ export function WorldCupPullScreen() {
   )
 }
 
-function MomentTile({ moment, onOpen }: { moment: MomentResult; onOpen: () => void }) {
+function MomentTile({ moment, CardArt, onOpen }: { moment: MomentResult; CardArt: CardArtComponent; onOpen: () => void }) {
   const rarityStyle = MOMENT_RARITY_STYLE[momentRarity(moment)]
   return (
     <button
@@ -281,7 +291,7 @@ function MomentTile({ moment, onOpen }: { moment: MomentResult; onOpen: () => vo
       onClick={onOpen}
       className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#141414] p-3 text-left transition-transform hover:-translate-y-1"
     >
-      <MomentCardArt moment={moment} className="w-full rounded-xl" />
+      <CardArt moment={moment} className="w-full rounded-xl" />
       <div className="mt-3 flex items-center justify-between gap-2">
         <p className="truncate text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed Moment</p>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${rarityStyle.badge}`}>
@@ -305,7 +315,17 @@ function MomentTile({ moment, onOpen }: { moment: MomentResult; onOpen: () => vo
  * (mirrors the Tarot deck's PullReel), then the detail panel — with its own share/download
  * controls in a separate normal-flow block so they never get squeezed by the fixed-height
  * card art — appears once the reel actually finishes landing. */
-function MomentReveal({ moment, queueCount, onDismiss }: { moment: MomentResult; queueCount: number; onDismiss: () => void }) {
+function MomentReveal({
+  moment,
+  CardArt,
+  queueCount,
+  onDismiss,
+}: {
+  moment: MomentResult
+  CardArt: CardArtComponent
+  queueCount: number
+  onDismiss: () => void
+}) {
   const [revealed, setRevealed] = useState(false)
   const { svgRef, downloading, downloadError, handleDownload } = useMomentCardDownload(moment)
   const rarityStyle = MOMENT_RARITY_STYLE[momentRarity(moment)]
@@ -313,7 +333,7 @@ function MomentReveal({ moment, queueCount, onDismiss }: { moment: MomentResult;
   if (!revealed) {
     return (
       <div className="flex flex-col items-center gap-3 py-4">
-        <MomentReel moment={moment} onLanded={() => setRevealed(true)} />
+        <MomentReel moment={moment} CardArt={CardArt} onLanded={() => setRevealed(true)} />
         <p className="text-[11px] font-bold uppercase tracking-widest text-white/40">Opening the live match pack…</p>
       </div>
     )
@@ -323,7 +343,7 @@ function MomentReveal({ moment, queueCount, onDismiss }: { moment: MomentResult;
     <div className="flex flex-col items-center gap-4 pb-1 text-center md:flex-row md:items-start md:gap-5 md:text-left">
       <div className="flex w-[11.5rem] shrink-0 flex-col items-center gap-3">
         <div className="animate-[card-glow_2.4s_ease-in-out_infinite]">
-          <MomentCardArt ref={svgRef} moment={moment} className="h-64 w-[11.5rem] rounded-2xl" />
+          <CardArt ref={svgRef} moment={moment} className="h-64 w-[11.5rem] rounded-2xl" />
         </div>
         <MomentShareButtons moment={moment} downloading={downloading} downloadError={downloadError} onDownload={handleDownload} />
         <MomentClaimButton moment={moment} />

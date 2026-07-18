@@ -1,26 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import { useEffect, useMemo, useState } from 'react'
 import { fetchCollection, type CollectionEntry, type MomentResult } from './momentsApi'
-import { CollectionCardArt } from './CollectionCardArt'
 import { CollectionDetailModal } from './CollectionDetailModal'
-import { PACK_PRICE_SOL, payForPack, friendlyPayError } from './packPayment'
-import { PackPurchaseModal } from './PackPurchaseModal'
-import { ROUND_ORDER, scoreLabel, CollectionTile } from './collectionShared'
+import { ROUND_ORDER, CollectionTile } from './collectionShared'
 
 const COLLECTION_POLL_INTERVAL_MS = 15000
 
+/** Read-only archive of every World Cup 2026 knockout match, shown below the Match Pack
+ * draw panel for browsing — drawing itself happens through the same real/auto-sealed
+ * Moment queue as every other pack (see WorldCupPullScreen.tsx), not from this archive. */
 export function MatchCollection({ recentMoments }: { recentMoments: MomentResult[] }) {
-  const { connection } = useConnection()
-  const wallet = useWallet()
   const [collection, setCollection] = useState<CollectionEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [detailEntry, setDetailEntry] = useState<CollectionEntry | null>(null)
-  const [drawnEntry, setDrawnEntry] = useState<CollectionEntry | null>(null)
-  const [drawing, setDrawing] = useState(false)
-  const [paying, setPaying] = useState(false)
-  const [payError, setPayError] = useState<string | null>(null)
-  const [drawModalOpen, setDrawModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -69,40 +61,6 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
     return map
   }, [collection])
 
-  const handleDraw = useCallback(async () => {
-    if (collection.length === 0 || drawing || paying) return
-    if (!wallet.publicKey || !wallet.sendTransaction) {
-      setPayError('Connect your wallet to buy a pack.')
-      return
-    }
-
-    setPayError(null)
-    setPaying(true)
-    try {
-      await payForPack(connection, wallet)
-    } catch (e: unknown) {
-      setPayError(friendlyPayError(e))
-      setPaying(false)
-      return
-    }
-
-    setPaying(false)
-    setDrawing(true)
-    setDrawnEntry(null)
-    window.setTimeout(() => {
-      setDrawnEntry(collection[Math.floor(Math.random() * collection.length)])
-      setDrawing(false)
-    }, 700)
-  }, [collection, drawing, paying, wallet, connection])
-
-  // Modal closes immediately on confirm (before payment resolves), same as the Event Pack
-  // flow -- otherwise a failed payment's error message would render behind the still-open
-  // modal overlay instead of in the visible inline panel underneath.
-  const handleDrawConfirm = useCallback(() => {
-    setDrawModalOpen(false)
-    void handleDraw()
-  }, [handleDraw])
-
   return (
     <div className="w-full max-w-4xl rounded-3xl bg-[#0a0a0a] p-5 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -118,70 +76,6 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
       {error && (
         <div className="mt-4 w-full rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-[11px] text-red-300">{error}</div>
       )}
-
-      {/* Gachapon draw */}
-      <div className="mt-6 flex w-full flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-6">
-        {drawnEntry ? (
-          <div className="flex flex-col items-center gap-4 pb-1 text-center md:flex-row md:items-start md:gap-5 md:text-left">
-            <div className="mx-0 shrink-0 [perspective:1200px]">
-              <div className="relative h-64 w-[11.5rem] animate-[card-flip_950ms_cubic-bezier(.3,.9,.35,1.08)_both] [transform-style:preserve-3d]">
-                <div className="absolute inset-0 animate-[card-glow_2.4s_ease-in-out_1s_infinite] [backface-visibility:hidden]">
-                  <CollectionCardArt entry={drawnEntry} className="h-64 w-[11.5rem] rounded-2xl" />
-                </div>
-              </div>
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col items-center gap-2 md:items-start animate-[rise-in_500ms_ease-out_450ms_both]">
-              <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#8fe3b0]">
-                {drawnEntry.round}
-              </span>
-              <div className="text-2xl font-black tracking-tight text-white">
-                {drawnEntry.team1} <span className="text-white/40">vs</span> {drawnEntry.team2}
-              </div>
-              <div className="text-xl font-black text-[#ffd447]">{scoreLabel(drawnEntry)}</div>
-              {momentsFor(drawnEntry).length > 0 && (
-                <span className="rounded-full bg-[#ffd447]/15 px-3 py-1 text-xs font-black text-[#ffd447]">
-                  {'⚡'} {momentsFor(drawnEntry).length} Sealed Moment{momentsFor(drawnEntry).length > 1 ? 's' : ''} captured!
-                </span>
-              )}
-              <div className="mt-4 flex w-full flex-col gap-2 sm:flex-row">
-                <button
-                  onClick={() => setDetailEntry(drawnEntry)}
-                  className="rounded-full bg-white px-4 py-3 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:bg-[#ffd447]"
-                >
-                  View Details
-                </button>
-                <button
-                  onClick={() => setDrawModalOpen(true)}
-                  disabled={drawing || paying}
-                  className="rounded-full border border-white/20 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white/70 transition-colors hover:border-white hover:text-white disabled:opacity-50"
-                >
-                  {paying ? 'Confirming payment...' : `Buy Another — ${PACK_PRICE_SOL} SOL`}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 py-6">
-            <p className="text-sm font-bold uppercase tracking-widest text-white/80">Open a capsule</p>
-            <p className="max-w-xs text-xs text-white/40">
-              Pull a random match from the full World Cup 2026 knockout collection — {PACK_PRICE_SOL} SOL per pack, paid on devnet.
-            </p>
-            <button
-              onClick={() => setDrawModalOpen(true)}
-              disabled={loading || collection.length === 0 || drawing || paying}
-              className="mt-2 rounded-full bg-[#ffd447] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-50"
-            >
-              {paying ? 'Confirming payment...' : drawing ? 'Opening...' : `Buy Pack — ${PACK_PRICE_SOL} SOL`}
-            </button>
-            {!wallet.publicKey && <p className="text-[11px] font-bold uppercase tracking-widest text-white/30">Connect your wallet above to buy a pack</p>}
-          </div>
-        )}
-        {payError && (
-          <div className="w-full [overflow-wrap:anywhere] rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-[11px] text-red-300">
-            {payError}
-          </div>
-        )}
-      </div>
 
       {loading ? (
         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
@@ -211,16 +105,6 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
 
       {detailEntry && (
         <CollectionDetailModal entry={detailEntry} moments={momentsFor(detailEntry)} onClose={() => setDetailEntry(null)} />
-      )}
-
-      {drawModalOpen && (
-        <PackPurchaseModal
-          packArt="/worldcup-card/Match-Pull-card.png"
-          packLabel="Match Pack"
-          paying={paying}
-          onCancel={() => setDrawModalOpen(false)}
-          onConfirm={handleDrawConfirm}
-        />
       )}
     </div>
   )

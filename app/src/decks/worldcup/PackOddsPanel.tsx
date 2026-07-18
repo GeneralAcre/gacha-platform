@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchCollection, fetchRecentMoments, type MomentResult } from './momentsApi'
+import { fetchRecentMoments, type MomentResult } from './momentsApi'
 import { momentRarity, type MomentRarity } from './momentRarity'
 import { COMPETITIONS } from './competitions'
 
@@ -14,25 +14,24 @@ function tally(moments: MomentResult[]): Record<MomentRarity, number> {
   return counts
 }
 
-/** Pull-odds disclosure for all 4 packs. Match Pack has a real fixed probability (uniform
- * draw over the known collection size), so that's shown as an exact percentage. Player/
- * Event Pack rarity is graded from how big a real odds swing actually was (see
- * momentRarity.ts) -- there's no fixed weighted-roll behind it, so instead of inventing a
- * percentage we show the real threshold rule plus the actual observed split among
- * recently sealed Moments, clearly labeled as observed-not-guaranteed. */
+/** Pull-odds disclosure for all 4 packs. Every live pack shares the same real (or
+ * auto-sealed-on-demand) Moment queue, with rarity graded from how big the real odds swing
+ * actually was (see momentRarity.ts) -- there's no fixed weighted-roll behind it, so instead
+ * of inventing a percentage we show the real threshold rule plus the actual observed split
+ * among recently sealed Moments, clearly labeled as observed-not-guaranteed. */
 export function PackOddsPanel() {
   const [open, setOpen] = useState(false)
-  const [collectionCount, setCollectionCount] = useState<number | null>(null)
   const [recent, setRecent] = useState<MomentResult[]>([])
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     if (!open || loaded) return
-    Promise.all([fetchCollection().catch(() => []), fetchRecentMoments(50).catch(() => [])]).then(([collection, moments]) => {
-      setCollectionCount(collection.length)
-      setRecent(moments)
-      setLoaded(true)
-    })
+    fetchRecentMoments(50)
+      .catch(() => [])
+      .then((moments) => {
+        setRecent(moments)
+        setLoaded(true)
+      })
   }, [open, loaded])
 
   const counts = tally(recent)
@@ -58,14 +57,6 @@ export function PackOddsPanel() {
 
               {!comp.live ? (
                 <p className="mt-2 text-[11px] text-paper/40">Not live yet — odds will be published at launch.</p>
-              ) : comp.view === 'matches' ? (
-                <p className="mt-2 text-[11px] leading-5 text-paper/60">
-                  Uniform draw across the full knockout collection —{' '}
-                  <span className="font-bold text-paper">
-                    {collectionCount ? `1 in ${collectionCount} (${(100 / collectionCount).toFixed(1)}%)` : 'loading…'}
-                  </span>{' '}
-                  per specific match, every time.
-                </p>
               ) : (
                 <>
                   <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-paper/40">How rarity is decided</p>

@@ -69,6 +69,7 @@ export class SwingDetector {
     fixture.lastMomentAt = update.timestamp;
     return {
       fixtureId: update.fixtureId,
+      competition: update.competition,
       team: update.team,
       opponent: update.opponent,
       fromProbability,

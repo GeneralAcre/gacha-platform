@@ -1,18 +1,21 @@
 import { forwardRef, useId } from 'react'
 import type { CollectionEntry } from './momentsApi'
 
-// Sports-card style: bold color-blocked panel (varies by round, like a rating
-// tier), one big hero number, a clean name bar at the bottom. Deliberately
-// minimal -- venue/date/extra detail lives in the click-through detail modal,
-// not on the card face.
-const ROUND_THEME: Record<string, { from: string; to: string; accent: string }> = {
-  'Round of 32': { from: '#0d4d3a', to: '#082e23', accent: '#8fe3b0' },
-  'Round of 16': { from: '#0d3d5c', to: '#082438', accent: '#7ec8ff' },
-  Quarterfinal: { from: '#3d1f6b', to: '#251142', accent: '#c9a8ff' },
-  Semifinal: { from: '#6b1f3d', to: '#421125', accent: '#ff9ab5' },
-  'Third Place': { from: '#6b4a1f', to: '#422d11', accent: '#ffcb7a' },
-  Final: { from: '#3d3115', to: '#161206', accent: '#ffd447' },
-  'World Cup': { from: '#0d4d3a', to: '#082e23', accent: '#8fe3b0' },
+// Only 2 backdrop photos exist for pull cards (see worldcup-card/): this is the "Match
+// Pack" one -- every collection draw (verified results + live odds) uses this art with
+// the real match data written on top of it, matching MomentCardArt.tsx's "Event Pack" art.
+const MATCH_ART = '/worldcup-card/Match-Pull-card.png'
+
+// Round accent still varies the chip/text color for a bit of visual range across rounds,
+// even though the backdrop photo itself is now the same for every card.
+const ROUND_ACCENT: Record<string, string> = {
+  'Round of 32': '#8fe3b0',
+  'Round of 16': '#7ec8ff',
+  Quarterfinal: '#c9a8ff',
+  Semifinal: '#ff9ab5',
+  'Third Place': '#ffcb7a',
+  Final: '#ffd447',
+  'World Cup': '#8fe3b0',
 }
 
 const ROUND_ABBR: Record<string, string> = {
@@ -29,7 +32,7 @@ export const CollectionCardArt = forwardRef<SVGSVGElement, { entry: CollectionEn
   function CollectionCardArt({ entry, className = '' }, ref) {
     const uid = useId().replace(/:/g, '')
     const isResult = entry.kind === 'result'
-    const theme = ROUND_THEME[entry.round] ?? ROUND_THEME['World Cup']
+    const accent = ROUND_ACCENT[entry.round] ?? ROUND_ACCENT['World Cup']
     const chipLabel = ROUND_ABBR[entry.round] ?? entry.round.slice(0, 4).toUpperCase()
     const wp = entry.winProbability
 
@@ -44,9 +47,11 @@ export const CollectionCardArt = forwardRef<SVGSVGElement, { entry: CollectionEn
         className={className}
       >
         <defs>
-          <linearGradient id={`bg-${uid}`} x1="0" y1="0" x2="0.3" y2="1">
-            <stop offset="0%" stopColor={theme.from} />
-            <stop offset="100%" stopColor={theme.to} />
+          <linearGradient id={`scrim-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#000000" stopOpacity="0.55" />
+            <stop offset="18%" stopColor="#000000" stopOpacity="0.05" />
+            <stop offset="68%" stopColor="#000000" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0.75" />
           </linearGradient>
           <clipPath id={`card-${uid}`}>
             <rect x="0" y="0" width="100" height="140" rx="7" />
@@ -54,7 +59,9 @@ export const CollectionCardArt = forwardRef<SVGSVGElement, { entry: CollectionEn
         </defs>
 
         <g clipPath={`url(#card-${uid})`}>
-          <rect x="0" y="0" width="100" height="140" fill={`url(#bg-${uid})`} />
+          <image href={MATCH_ART} x="0" y="0" width="100" height="140" preserveAspectRatio="xMidYMid slice" />
+          {/* Scrim: darkens top (badges) and bottom (name bar) so text reads over the photo. */}
+          <rect x="0" y="0" width="100" height="140" fill={`url(#scrim-${uid})`} />
 
           {/* top chip */}
           <rect x="6" y="6" width="24" height="10" rx="5" fill="#ffffff" />
@@ -62,51 +69,53 @@ export const CollectionCardArt = forwardRef<SVGSVGElement, { entry: CollectionEn
             {chipLabel}
           </text>
           {!isResult && (
-            <text x="94" y="13" fill={theme.accent} fontSize="3.4" fontWeight="800" textAnchor="end" letterSpacing="0.4" fontFamily="Arial, sans-serif">
-              {(entry.status ?? 'live').toUpperCase()}
-            </text>
+            <>
+              <rect x="66" y="6" width="28" height="10" rx="5" fill="#00000090" />
+              <text x="80" y="12.8" fill={accent} fontSize="3.4" fontWeight="800" textAnchor="middle" letterSpacing="0.4" fontFamily="Arial, sans-serif">
+                {(entry.status ?? 'live').toUpperCase()}
+              </text>
+            </>
           )}
 
-          {/* hero number */}
+          {/* hero number, in a glass panel for guaranteed contrast over the photo */}
+          <rect x="12" y="50" width="76" height="42" rx="6" fill="#000000" opacity="0.4" />
+          <rect x="12" y="50" width="76" height="42" rx="6" fill="none" stroke={accent} strokeOpacity="0.35" strokeWidth="0.6" />
           {isResult ? (
             <>
-              <text x="50" y="72" fill="#ffffff" fontSize="26" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+              <text x="50" y="74" fill="#ffffff" fontSize="22" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
                 {entry.score1}{'–'}{entry.score2}
               </text>
-              <text x="50" y="86" fill={theme.accent} fontSize="4.2" fontWeight="800" textAnchor="middle" letterSpacing="0.6" fontFamily="Arial, sans-serif">
+              <text x="50" y="87" fill={accent} fontSize="4" fontWeight="800" textAnchor="middle" letterSpacing="0.6" fontFamily="Arial, sans-serif">
                 {entry.penalties ? `PENS ${entry.penalties.team1}-${entry.penalties.team2}` : entry.wentToExtraTime ? 'AFTER EXTRA TIME' : 'FULL TIME'}
               </text>
             </>
           ) : wp ? (
             <>
-              <text x="50" y="70" fill="#ffffff" fontSize="20" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+              <text x="50" y="74" fill="#ffffff" fontSize="18" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
                 {Math.round(wp.participant1)}{'–'}{Math.round(wp.participant2)}
               </text>
-              <text x="50" y="86" fill={theme.accent} fontSize="4.2" fontWeight="800" textAnchor="middle" letterSpacing="0.6" fontFamily="Arial, sans-serif">
+              <text x="50" y="87" fill={accent} fontSize="4" fontWeight="800" textAnchor="middle" letterSpacing="0.6" fontFamily="Arial, sans-serif">
                 WIN PROBABILITY %
               </text>
             </>
           ) : (
             <>
-              <text x="50" y="72" fill="#ffffff30" fontSize="24" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+              <text x="50" y="74" fill="#ffffff60" fontSize="20" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
                 VS
               </text>
-              <text x="50" y="86" fill={theme.accent} fontSize="4.2" fontWeight="800" textAnchor="middle" letterSpacing="0.6" fontFamily="Arial, sans-serif">
+              <text x="50" y="87" fill={accent} fontSize="4" fontWeight="800" textAnchor="middle" letterSpacing="0.6" fontFamily="Arial, sans-serif">
                 ODDS PENDING
               </text>
             </>
           )}
 
           {/* name bar */}
-          <rect x="0" y="104" width="100" height="36" fill="#00000045" />
-          <text x="50" y="120" fill="#ffffff" fontSize="6.2" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+          <rect x="0" y="108" width="100" height="32" fill="#000000a8" />
+          <text x="50" y="122" fill="#ffffff" fontSize="6.2" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
             {entry.team1}
           </text>
-          <text x="50" y="129" fill={theme.accent} fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
+          <text x="50" y="132" fill={accent} fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
             vs {entry.team2}
-          </text>
-          <text x="50" y="136.5" fill="#ffffff70" fontSize="3" fontWeight="700" textAnchor="middle" letterSpacing="0.8" fontFamily="Arial, sans-serif">
-            WORLD CUP 2026
           </text>
         </g>
       </svg>

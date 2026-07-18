@@ -124,6 +124,7 @@ function normalizeOddsEntry(raw: RawOdds, fixtureMeta: Map<number, FixtureMeta>)
     const isPart1 = name === "part1";
     updates.push({
       fixtureId: raw.FixtureId,
+      competition: meta.competition,
       team: isPart1 ? meta.participant1 : meta.participant2,
       opponent: isPart1 ? meta.participant2 : meta.participant1,
       winProbability: normalized[i],

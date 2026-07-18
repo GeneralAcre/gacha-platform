@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { MomentCardArt } from './MomentCardArt'
+import { MomentClaimButton } from './MomentClaimButton'
 import { explorerTxUrl, type MomentResult } from './momentsApi'
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -86,14 +87,17 @@ export function MomentDetailModal({ moment, onClose }: { moment: MomentResult; o
             <DetailRow label="Sealed at" value={sealedAt} />
           </div>
 
-          <a
-            href={explorerTxUrl(moment.signature)}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 w-full rounded-full bg-white px-4 py-3 text-center text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:bg-[#ffd447] md:w-fit md:px-6"
-          >
-            View on Solana Explorer ↗
-          </a>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <a
+              href={explorerTxUrl(moment.signature)}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full bg-white px-4 py-3 text-center text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:bg-[#ffd447] md:px-6"
+            >
+              View on Solana Explorer ↗
+            </a>
+            <MomentClaimButton moment={moment} />
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,8 @@
 export interface OddsUpdate {
   fixtureId: number;
+  /** TxLINE's own competition label for this fixture, e.g. "World Cup" — never fabricated,
+   * always whatever the fixture snapshot reports. */
+  competition: string;
   team: string;
   opponent: string;
   /** Win probability for `team`, 0-100. Derived from whatever raw price field TxLINE returns. */
@@ -10,6 +13,7 @@ export interface OddsUpdate {
 
 export interface Moment {
   fixtureId: number;
+  competition: string;
   team: string;
   opponent: string;
   fromProbability: number;
@@ -24,4 +28,7 @@ export interface Moment {
 /** A Moment that has been sealed on-chain as a devnet memo transaction. */
 export interface MomentResult extends Moment {
   signature: string;
+  // Populated in server.ts's recordMoments via adminMatches.matchImageForFixture --
+  // admin-curated if set, else a generated placeholder keyed by this fixture's id.
+  imageUrl?: string;
 }

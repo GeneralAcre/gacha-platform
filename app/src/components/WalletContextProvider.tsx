@@ -17,7 +17,7 @@ import '@solana/wallet-adapter-react-ui/styles.css'
 const nativeShell = globalThis.location?.origin === 'https://localhost'
 registerMwa({
   appIdentity: {
-    name: 'Obsession',
+    name: 'Moment',
     uri: nativeShell ? 'https://gacha-er.vercel.app' : (globalThis.location?.origin ?? 'https://obsession.app'),
     icon: '/favicon.svg',
   },

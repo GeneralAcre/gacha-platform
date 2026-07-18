@@ -6,6 +6,7 @@
  */
 import { fetchFixtureSummaries } from "./fixtures";
 import { WORLD_CUP_2026_KNOCKOUT_RESULTS, KnockoutRound } from "./worldCup2026Results";
+import type { MatchEvent } from "./matchMetadataStore";
 
 export type CollectionEntryKind = "result" | "live";
 
@@ -27,6 +28,14 @@ export interface CollectionEntry {
   fixtureId?: number;
   status?: "upcoming" | "live" | "past";
   winProbability?: { participant1: number; participant2: number };
+  // Populated by server.ts (see adminMatches.ts's enrichCollectionEntries) from the
+  // admin-curated overlay + generated placeholder -- never set by fetchCollection itself.
+  imageUrl?: string;
+  // Admin-reported goal/card timeline for a "live" entry, and the tally derived from it.
+  // Deliberately separate from score1/score2 (which only ever exist on a verified
+  // "result" entry) -- never presented as TxLINE-sourced fact, see matchMetadataStore.ts.
+  events?: MatchEvent[];
+  reportedScore?: { teamA: number; teamB: number } | null;
 }
 
 /** Known final-stretch fixtures, purely for a readable round label -- the odds/status data itself always comes live from TxLINE, never fabricated. */

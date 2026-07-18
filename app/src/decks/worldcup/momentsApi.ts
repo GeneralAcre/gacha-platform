@@ -3,6 +3,7 @@
 
 export interface MomentResult {
   fixtureId: number
+  competition: string
   team: string
   opponent: string
   fromProbability: number
@@ -13,6 +14,8 @@ export interface MomentResult {
   kind: 'swing' | 'flip'
   narrative: string
   signature: string
+  /** Admin-curated if set, else a generated placeholder — see backend/src/matchImages.ts. */
+  imageUrl?: string
 }
 
 export interface FixtureSummary {
@@ -43,6 +46,8 @@ export interface CollectionEntry {
   fixtureId?: number
   status?: 'upcoming' | 'live' | 'past'
   winProbability?: { participant1: number; participant2: number }
+  /** Admin-curated if set, else a generated placeholder — see backend/src/matchImages.ts. */
+  imageUrl?: string
 }
 
 const API_BASE = (import.meta.env.VITE_MOMENTS_API_URL as string | undefined) ?? 'http://localhost:8787'

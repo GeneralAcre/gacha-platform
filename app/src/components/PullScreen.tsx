@@ -4,7 +4,8 @@ import { AnchorProvider, Program, web3 } from '@coral-xyz/anchor'
 import idl from '../idl/gacha_er.json'
 import { resolveCard, CARD_IMAGE, SPECIAL_CARD, PACK_PRICE_SOL, type CardInfo, type Rarity } from './cardRegistry'
 import { getCategory, categoryToByte, type Category } from './categories'
-import { OracleCardArt } from './OracleCardArt'
+import { PullReel } from './PullReel'
+import { RarityOddsChart } from './RarityOddsChart'
 
 type AnchorWallet = ConstructorParameters<typeof AnchorProvider>[1]
 
@@ -73,6 +74,7 @@ export function PullScreen({
   const [pulling, setPulling] = useState(false)
   const [result, setResult] = useState<CardInfo | null>(null)
   const [resultCategory, setResultCategory] = useState<Category | null>(null)
+  const [revealed, setRevealed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pullsDone, setPullsDone] = useState<number | null>(null)
   const [pitySinceGrand, setPitySinceGrand] = useState<number | null>(null)
@@ -113,6 +115,7 @@ export function PullScreen({
     setDelegated(false)
     setResult(null)
     setResultCategory(null)
+    setRevealed(false)
     setError(null)
     setPullsDone(null)
     setPitySinceGrand(null)
@@ -271,6 +274,7 @@ export function PullScreen({
     setPulling(true)
     setError(null)
     setResult(null)
+    setRevealed(false)
     setLatencyMs(null)
     setLastPull(null)
     setMintedPullIndex(null)
@@ -329,6 +333,8 @@ export function PullScreen({
       setPulling(false)
     }
   }, [erProgram, wallet.publicKey, playerPda, playerAccountNamespace, pullsDone, onReveal, category])
+
+  const handleReveal = useCallback(() => setRevealed(true), [])
 
   const handleMint = useCallback(async () => {
     if (!baseProgram || !wallet.publicKey || !lastPull) return
@@ -457,6 +463,8 @@ export function PullScreen({
               </p>
             </div>
           )}
+          {!result && <RarityOddsChart pitySinceGrand={pitySinceGrand} pityThreshold={PITY_THRESHOLD} />}
+
           {pityDue && !result && (
             <div className="w-full rounded-2xl border border-ink/10 bg-ink/5 p-3 text-center">
               <p className="text-xs font-bold uppercase tracking-widest text-ink/70">
@@ -467,30 +475,21 @@ export function PullScreen({
 
           <div
             className={`w-full rounded-3xl border bg-paper p-5 text-center md:p-6 ${
-              result && rarityStyle ? rarityStyle.ring : 'border-ink/10'
+              revealed && result && rarityStyle ? rarityStyle.ring : 'border-ink/10'
             }`}
           >
-            {result && rarityStyle ? (
+            {revealed && result && rarityStyle ? (
               <div className="flex flex-col items-center gap-4 pb-1 text-center md:flex-row md:items-start md:gap-5 md:text-left">
-                <div className="mx-0 shrink-0 [perspective:1200px]">
-                  <div className="relative h-48 w-36 animate-[card-flip_950ms_cubic-bezier(.3,.9,.35,1.08)_both] [transform-style:preserve-3d]">
-                    <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                      <OracleCardArt
-                        category={resultCategory ?? category}
-                        rarity={result.rarity}
-                        className="h-full w-full"
-                      />
-                    </div>
-                    <div className="absolute inset-0 animate-[card-glow_2.4s_ease-in-out_1s_infinite] [backface-visibility:hidden]">
-                      <img
-                        src={CARD_IMAGE[resultCategory ?? category]}
-                        alt={result.name}
-                        className="h-full w-full rounded-xl border border-ink/10 object-cover drop-shadow-[0_10px_24px_rgba(91,79,232,0.3)]"
-                      />
-                    </div>
+                <div className="mx-0 shrink-0">
+                  <div className="relative h-48 w-36 animate-[card-glow_2.4s_ease-in-out_infinite]">
+                    <img
+                      src={CARD_IMAGE[resultCategory ?? category]}
+                      alt={result.name}
+                      className="h-full w-full rounded-xl border border-ink/10 object-cover drop-shadow-[0_10px_24px_rgba(91,79,232,0.3)]"
+                    />
                   </div>
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col items-center gap-2 md:items-start animate-[rise-in_500ms_ease-out_450ms_both]">
+                <div className="flex min-w-0 flex-1 flex-col items-center gap-2 md:items-start animate-[rise-in_500ms_ease-out_both]">
                   {resultCategory && (
                     <span className="text-[10px] font-bold uppercase tracking-widest text-ink/45">
                       Your draw · {getCategory(resultCategory).label}
@@ -550,8 +549,20 @@ export function PullScreen({
                   )}
                 </div>
               </div>
+            ) : pulling || (result && !revealed) ? (
+              <div className="flex flex-col items-center gap-3">
+                <PullReel
+                  category={resultCategory ?? category}
+                  phase={pulling ? 'spin' : 'landing'}
+                  result={result}
+                  onLanded={handleReveal}
+                />
+                <p className="text-[11px] font-bold uppercase tracking-widest text-ink/45">
+                  {pulling ? 'Sealing your draw on-chain…' : 'Drawing your card…'}
+                </p>
+              </div>
             ) : (
-              <div className={`mx-auto w-40 transition-transform duration-700 ${pulling ? 'animate-pulse scale-95' : 'hover:-translate-y-1'}`}>
+              <div className="mx-auto w-40 transition-transform duration-700 hover:-translate-y-1">
                 <img
                   src={CARD_IMAGE[category]}
                   alt={`${getCategory(category).label} card pack`}
@@ -562,10 +573,10 @@ export function PullScreen({
 
             <button
               onClick={handlePull}
-              disabled={pulling}
+              disabled={pulling || (result !== null && !revealed)}
               className="btn-gradient mt-4 mx-auto w-[min(90%,18rem)] rounded-full px-6 py-3 text-lg font-bold transition-transform hover:-translate-y-0.5 disabled:opacity-50 md:px-8 md:py-5 md:text-xl"
             >
-              {pulling ? 'Consulting Obsession...' : result ? 'Draw Again' : 'Draw'}
+              {pulling ? 'Consulting Obsession...' : result && !revealed ? 'Drawing...' : revealed ? 'Draw Again' : 'Draw'}
             </button>
           </div>
         </div>

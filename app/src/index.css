@@ -6,6 +6,10 @@
   --color-flare: #5b4fe8;
   --color-paper: #ffffff;
   --color-canvas: #ebe9e5;
+  --color-gold: #f2c94c;
+  /* Elevated dark panel — used on top of the near-black ink surfaces (navbar, hero, showcases)
+     so cards read as a distinct layer instead of flattening into the background. */
+  --color-void: rgb(255 255 255 / 0.08);
 }
 
 :root {
@@ -17,6 +21,18 @@
 
 .font-kdam {
   font-family: 'Inter', sans-serif;
+}
+
+/* Shared frosted-glass treatment for consumer-facing panels. */
+.bg-void {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Neubrutalist accent for the admin dashboard only (see app/src/admin/) — scoped here
+   instead of the @theme block above so it can't leak into the consumer-facing screens. */
+.admin-scope {
+  --admin-neon: #c8ff5c;
 }
 
 /* Iridescent gradient used sparingly for the app's primary calls to action. */
@@ -52,6 +68,13 @@ textarea {
   100% { opacity: 1; transform: rotateY(0) scale(1); }
 }
 
+/* Live match ticker: the track renders its fixture list twice back to back, so
+   translating exactly -50% loops seamlessly, same trick as the pull reel's spin. */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 /* Card reveal: flip from the deck's back face to the drawn card with a slight overshoot */
 @keyframes card-flip {
   0% { transform: rotateY(180deg) scale(0.7); }
@@ -67,6 +90,13 @@ textarea {
 @keyframes rise-in {
   0% { opacity: 0; transform: translateY(12px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Pull reel: endless scroll while the on-chain pull is in flight. The track renders its
+   filler list twice back to back, so translating exactly -50% loops seamlessly. */
+@keyframes reel-spin {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 .draw-card-art::after {
@@ -88,10 +118,11 @@ textarea {
   .draw-card-art::after { transition: none; }
 }
 
-/* Recolor the third-party wallet-adapter button to match the palette */
+/* Recolor the third-party wallet-adapter button to match the palette. Sits on the
+   dark navbar now, so it needs a light fill to read as the primary CTA there. */
 .wallet-adapter-button-trigger {
-  background-color: #0a0a0a !important;
-  color: #ffffff !important;
+  background-color: #f4f2ec !important;
+  color: #0a0a0a !important;
   border: none !important;
   border-radius: 999px !important;
   font-weight: 700 !important;

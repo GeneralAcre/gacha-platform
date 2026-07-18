@@ -16,3 +16,8 @@ backend/*.env
 backend/devnet-keypair.json
 backend/.txline-session.json
 backend/dist
+
+# backend admin: curated match metadata + generated match cover images (runtime state,
+# not source -- see matchMetadataStore.ts / matchImages.ts)
+backend/data
+backend/media

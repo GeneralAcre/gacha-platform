@@ -9,6 +9,7 @@ export function AppShell({
   onDraw,
   onCollection,
   onProfile,
+  onMarketplace,
   onFaq,
   onPrivacy,
   onTerms,
@@ -21,6 +22,7 @@ export function AppShell({
   onDraw: () => void
   onCollection: () => void
   onProfile: () => void
+  onMarketplace: () => void
   onFaq: () => void
   onPrivacy: () => void
   onTerms: () => void
@@ -30,7 +32,16 @@ export function AppShell({
   return (
     // pb keeps content clear of the phone-only fixed bottom nav
     <div className={`flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-canvas text-ink ${showNavbar ? 'pb-16 md:pb-0' : ''}`}>
-      {showNavbar && <Navbar lastDraw={lastDraw} onHome={onHome} onDraw={onDraw} onCollection={onCollection} onProfile={onProfile} />}
+      {showNavbar && (
+        <Navbar
+          lastDraw={lastDraw}
+          onHome={onHome}
+          onDraw={onDraw}
+          onCollection={onCollection}
+          onProfile={onProfile}
+          onMarketplace={onMarketplace}
+        />
+      )}
       <main className="flex flex-1 flex-col">{children}</main>
       {showFooter && (
         <Footer onHome={onHome} onDraw={onDraw} onCollection={onCollection} onProfile={onProfile} onFaq={onFaq} onPrivacy={onPrivacy} onTerms={onTerms} />

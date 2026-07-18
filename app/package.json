@@ -19,9 +19,13 @@
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",
     "@solana/web3.js": "^1.98.4",
+    "bs58": "^6.0.0",
     "buffer": "^6.0.3",
+    "clsx": "^2.1.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "recharts": "^3.9.2",
+    "tailwind-merge": "^3.6.0",
     "vercel": "^55.0.0"
   },
   "devDependencies": {

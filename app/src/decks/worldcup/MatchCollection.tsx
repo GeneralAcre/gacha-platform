@@ -1,28 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import { fetchCollection, type CollectionEntry, type MomentResult } from './momentsApi'
 import { CollectionCardArt } from './CollectionCardArt'
 import { CollectionDetailModal } from './CollectionDetailModal'
+import { PACK_PRICE_SOL, payForPack, friendlyPayError } from './packPayment'
 
 const COLLECTION_POLL_INTERVAL_MS = 15000
 const ROUND_ORDER = ['Round of 32', 'Round of 16', 'Quarterfinal', 'Semifinal', 'Third Place', 'Final']
-
-// House wallet — the same devnet keypair the backend uses to sign Moment memo
-// transactions, so pack revenue also keeps that wallet funded for tx fees.
-const TREASURY_PUBKEY = new PublicKey('H6rUHSPYTRu65WSgVhVdGaB94SReGsvL7NNCTUsfasCn')
-const PACK_PRICE_SOL = 0.02
-
-function friendlyPayError(e: unknown): string {
-  const message = e instanceof Error ? e.message : String(e)
-  if (/user rejected|rejected the request|declined|approval denied/i.test(message)) {
-    return 'Payment was declined in your wallet.'
-  }
-  if (/insufficient|debit an account|0x1\b/i.test(message)) {
-    return 'This wallet needs a little devnet SOL to buy a pack. Get some from a devnet faucet and try again.'
-  }
-  return message
-}
 
 function scoreLabel(entry: CollectionEntry): string {
   if (entry.kind === 'result') return `${entry.score1} – ${entry.score2}`
@@ -123,18 +107,7 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
     setPayError(null)
     setPaying(true)
     try {
-      const tx = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: wallet.publicKey,
-          toPubkey: TREASURY_PUBKEY,
-          lamports: Math.round(PACK_PRICE_SOL * LAMPORTS_PER_SOL),
-        })
-      )
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
-      tx.recentBlockhash = blockhash
-      tx.feePayer = wallet.publicKey
-      const signature = await wallet.sendTransaction(tx, connection)
-      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
+      await payForPack(connection, wallet)
     } catch (e: unknown) {
       setPayError(friendlyPayError(e))
       setPaying(false)
@@ -209,7 +182,6 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3 py-6">
-            <span className="text-4xl">{'🎰'}</span>
             <p className="text-sm font-bold uppercase tracking-widest text-white/80">Open a capsule</p>
             <p className="max-w-xs text-xs text-white/40">
               Pull a random match from the full World Cup 2026 knockout collection — {PACK_PRICE_SOL} SOL per pack, paid on devnet.

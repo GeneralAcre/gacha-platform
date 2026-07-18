@@ -1,25 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { fetchRecentMoments, explorerTxUrl, momentKey, type MomentResult } from './momentsApi'
 import { MomentCardArt, MomentShareButtons, useMomentCardDownload } from './MomentCardArt'
+import { MomentReel } from './MomentReel'
+import { MomentClaimButton } from './MomentClaimButton'
 import { MomentDetailModal } from './MomentDetailModal'
 import { MatchCollection } from './MatchCollection'
+import { LiveMatchTicker } from './LiveMatchTicker'
+import { CompetitionPackSelector } from './CompetitionPackSelector'
+import { PackOddsPanel } from './PackOddsPanel'
+import { COMPETITIONS, DEFAULT_COMPETITION } from './competitions'
+import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
+import { PACK_PRICE_SOL, payForPack, friendlyPayError } from './packPayment'
 
 const POLL_INTERVAL_MS = 3000
-
-type Tab = 'feed' | 'matches'
 
 function formatSwing(moment: MomentResult): string {
   const arrow = moment.toProbability >= moment.fromProbability ? '↑' : '↓'
   return `${Math.round(moment.fromProbability)}% → ${Math.round(moment.toProbability)}% ${arrow}`
 }
 
-export function WorldCupPullScreen({ onChangeDeck }: { onChangeDeck: () => void }) {
+export function WorldCupPullScreen() {
+  const { connection } = useConnection()
+  const wallet = useWallet()
   const [recentMoments, setRecentMoments] = useState<MomentResult[]>([])
   const [queue, setQueue] = useState<MomentResult[]>([])
-  const [currentReveal, setCurrentReveal] = useState<MomentResult | null>(null)
+  const [openedMoment, setOpenedMoment] = useState<MomentResult | null>(null)
+  const [paying, setPaying] = useState(false)
+  const [payError, setPayError] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('feed')
   const [detailMoment, setDetailMoment] = useState<MomentResult | null>(null)
+  const [eventPaymentOpen, setEventPaymentOpen] = useState(false)
+  const [selectedCompetition, setSelectedCompetition] = useState(DEFAULT_COMPETITION)
+  const selectedPack = COMPETITIONS.find((pack) => pack.id === selectedCompetition) ?? COMPETITIONS[0]
 
   const seenRef = useRef<Set<string>>(new Set())
   const initializedRef = useRef(false)
@@ -40,7 +53,8 @@ export function WorldCupPullScreen({ onChangeDeck }: { onChangeDeck: () => void 
         const data = await fetchRecentMoments(20)
         if (cancelled) return
         setApiError(null)
-        setRecentMoments(data)
+        const scoped = data.filter((m) => m.competition === selectedPack.sourceCompetition)
+        setRecentMoments(scoped)
 
         if (!initializedRef.current) {
           // Don't replay history on first load — only reveal Moments that arrive from here on.
@@ -48,7 +62,7 @@ export function WorldCupPullScreen({ onChangeDeck }: { onChangeDeck: () => void 
           initializedRef.current = true
           return
         }
-        enqueueFresh(data)
+        enqueueFresh(scoped)
       } catch {
         if (!cancelled) setApiError('Could not reach the Moments API — is backend/ running (npm run server)?')
       }
@@ -60,54 +74,64 @@ export function WorldCupPullScreen({ onChangeDeck }: { onChangeDeck: () => void 
       cancelled = true
       window.clearInterval(id)
     }
-  }, [enqueueFresh])
+  }, [enqueueFresh, selectedPack.sourceCompetition])
 
-  useEffect(() => {
-    if (!currentReveal && queue.length > 0) {
-      setCurrentReveal(queue[0])
-      setQueue((q) => q.slice(1))
+  // Packs accumulate silently as real swings arrive — nothing reveals until the player
+  // actually pays to open one. Each open is its own payment, not a one-time unlock.
+  const handleOpenPack = useCallback(async () => {
+    if (queue.length === 0 || paying || openedMoment) return
+    if (!wallet.publicKey || !wallet.sendTransaction) {
+      setPayError('Connect your wallet to open a pack.')
+      return
     }
-  }, [queue, currentReveal])
+    setPayError(null)
+    setPaying(true)
+    try {
+      await payForPack(connection, wallet)
+    } catch (e: unknown) {
+      setPayError(friendlyPayError(e))
+      setPaying(false)
+      return
+    }
+    setPaying(false)
+    setOpenedMoment(queue[0])
+    setQueue((q) => q.slice(1))
+  }, [queue, paying, openedMoment, wallet, connection])
 
-  const handleDismiss = useCallback(() => setCurrentReveal(null), [])
+  const handleDismiss = useCallback(() => setOpenedMoment(null), [])
+
+  const handleSelectCompetition = useCallback((id: string) => {
+    setSelectedCompetition(id)
+    setQueue([])
+    setOpenedMoment(null)
+  }, [])
+
+  const handleEventPackClick = useCallback(() => {
+    setSelectedCompetition('event')
+    setOpenedMoment(null)
+    setEventPaymentOpen(true)
+  }, [])
+
+  const handleEventPayment = useCallback(() => {
+    if (queue.length === 0 || paying || openedMoment) return
+    setEventPaymentOpen(false)
+    void handleOpenPack()
+  }, [handleOpenPack, openedMoment, paying, queue.length])
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-0 px-4 py-10 md:py-14">
-      <div className="flex w-full flex-col gap-2 border-b border-ink/10 pb-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-ink/45">Active deck</p>
-          <p className="text-lg font-black tracking-tight text-ink">World Cup — Moments</p>
-        </div>
-        <button onClick={onChangeDeck} className="rounded-full border border-ink/12 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-ink hover:border-ink">
-          Change
-        </button>
+    <div className="w-full bg-ink text-paper">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-0 px-4 py-10 md:py-14">
+      <div className="w-full">
+        <CompetitionPackSelector selected={selectedCompetition} onSelect={handleSelectCompetition} onEventPackClick={handleEventPackClick} />
+        <PackOddsPanel />
       </div>
 
-      <div className="mt-6 flex w-full max-w-md gap-2 rounded-full border border-ink/10 bg-paper p-1">
-        <button
-          onClick={() => setTab('feed')}
-          className={`flex-1 rounded-full py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${
-            tab === 'feed' ? 'bg-ink text-paper' : 'text-ink/50'
-          }`}
-        >
-          Live Feed
-        </button>
-        <button
-          onClick={() => setTab('matches')}
-          className={`flex-1 rounded-full py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${
-            tab === 'matches' ? 'bg-ink text-paper' : 'text-ink/50'
-          }`}
-        >
-          Matches
-        </button>
-      </div>
-
-      {tab === 'matches' ? (
+      {selectedPack.view === 'matches' ? (
         <div className="mt-6 flex w-full justify-center">
           <MatchCollection recentMoments={recentMoments} />
         </div>
       ) : (
-        <div className="mt-6 w-full max-w-4xl rounded-3xl bg-[#0a0a0a] p-5 md:p-8">
+        <div className="mt-6 w-full max-w-4xl rounded-3xl border border-paper/10 bg-void p-5 shadow-[0_20px_50px_-24px_rgba(0,0,0,0.9)] md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed on devnet · real-time draw</p>
@@ -118,6 +142,10 @@ export function WorldCupPullScreen({ onChangeDeck }: { onChangeDeck: () => void 
             </span>
           </div>
 
+          <div className="mt-4">
+            <LiveMatchTicker competition={selectedPack.sourceCompetition} />
+          </div>
+
           {apiError && (
             <div className="mt-4 w-full rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-[11px] text-red-300">
               {apiError}
@@ -125,11 +153,34 @@ export function WorldCupPullScreen({ onChangeDeck }: { onChangeDeck: () => void 
           )}
 
           <div className="mt-6 flex w-full flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-6">
-            {currentReveal ? (
-              <MomentReveal moment={currentReveal} queueCount={queue.length} onDismiss={handleDismiss} />
+            {openedMoment ? (
+              <MomentReveal moment={openedMoment} queueCount={queue.length} onDismiss={handleDismiss} />
+            ) : queue.length > 0 ? (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <p className="text-sm font-bold uppercase tracking-widest text-white/80">
+                  {queue.length} sealed pack{queue.length > 1 ? 's' : ''} ready
+                </p>
+                <p className="max-w-xs text-center text-xs text-white/40">
+                  A real odds swing was just detected in a live match. Pay to open the pack and reveal the Moment card.
+                </p>
+                <button
+                  onClick={handleOpenPack}
+                  disabled={paying}
+                  className="mt-2 rounded-full bg-[#ffd447] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                  {paying ? 'Confirming payment...' : `Open Pack — ${PACK_PRICE_SOL} SOL`}
+                </button>
+                {!wallet.publicKey && (
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-white/30">Connect your wallet above to open a pack</p>
+                )}
+                {payError && (
+                  <div className="w-full max-w-xs [overflow-wrap:anywhere] rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-center text-[11px] text-red-300">
+                    {payError}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-3 py-6">
-                <span className="text-3xl">⚽</span>
                 <p className="text-sm font-bold uppercase tracking-widest text-white/80">Waiting for the next swing...</p>
                 <p className="text-xs text-white/40">This screen polls the Moments API every few seconds.</p>
               </div>
@@ -149,12 +200,29 @@ export function WorldCupPullScreen({ onChangeDeck }: { onChangeDeck: () => void 
         </div>
       )}
 
-      {detailMoment && <MomentDetailModal moment={detailMoment} onClose={() => setDetailMoment(null)} />}
+        {detailMoment && <MomentDetailModal moment={detailMoment} onClose={() => setDetailMoment(null)} />}
+        {eventPaymentOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="event-pack-title">
+            <div className="w-full max-w-sm rounded-3xl border border-paper/15 bg-void p-6 text-center shadow-2xl">
+              <img src="/worldcup-card/Event-Pull-card.png" alt="Event Pack" className="mx-auto h-36 w-28 rounded-xl bg-black object-contain shadow-lg" />
+              <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.28em] text-[#8fe3b0]">Event Pack</p>
+              <h2 id="event-pack-title" className="mt-2 text-2xl font-black text-paper">Ready to draw?</h2>
+              <p className="mt-3 text-sm leading-6 text-paper/60">Pay {PACK_PRICE_SOL.toFixed(2)} devnet SOL to open your Event Pack and reveal a sealed match moment.</p>
+              {queue.length === 0 && <p className="mt-3 text-xs text-paper/45">Waiting for the next event pack to become available.</p>}
+              <div className="mt-6 flex gap-3">
+                <button type="button" onClick={() => setEventPaymentOpen(false)} className="flex-1 rounded-full border border-paper/20 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-paper transition-colors hover:bg-paper/10">Cancel</button>
+                <button type="button" onClick={handleEventPayment} disabled={queue.length === 0 || paying} className="flex-1 rounded-full bg-[#8fe3b0] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-ink transition-colors hover:bg-[#b1f2cb] disabled:cursor-not-allowed disabled:opacity-40">{paying ? 'Confirming...' : `Pay ${PACK_PRICE_SOL.toFixed(2)} SOL`}</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 function MomentTile({ moment, onOpen }: { moment: MomentResult; onOpen: () => void }) {
+  const rarityStyle = MOMENT_RARITY_STYLE[momentRarity(moment)]
   return (
     <button
       type="button"
@@ -162,7 +230,12 @@ function MomentTile({ moment, onOpen }: { moment: MomentResult; onOpen: () => vo
       className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#141414] p-3 text-left transition-transform hover:-translate-y-1"
     >
       <MomentCardArt moment={moment} className="w-full rounded-xl" />
-      <p className="mt-3 truncate text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed Moment</p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed Moment</p>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${rarityStyle.badge}`}>
+          {rarityStyle.label}
+        </span>
+      </div>
       <p className="truncate text-sm font-black tracking-tight text-white">
         {moment.team} <span className="text-white/30">vs</span> {moment.opponent}
       </p>
@@ -176,29 +249,43 @@ function MomentTile({ moment, onOpen }: { moment: MomentResult; onOpen: () => vo
   )
 }
 
-/** The flip-animated card art gets a fixed height (h-64) for its 3D animation box; the
- * share/download buttons render as a separate normal-flow block so they're never squeezed
- * into (or overflowing out of) that fixed-height box. */
+/** Reveal now has two beats: MomentReel plays a spin-then-land pack-opening animation first
+ * (mirrors the Tarot deck's PullReel), then the detail panel — with its own share/download
+ * controls in a separate normal-flow block so they never get squeezed by the fixed-height
+ * card art — appears once the reel actually finishes landing. */
 function MomentReveal({ moment, queueCount, onDismiss }: { moment: MomentResult; queueCount: number; onDismiss: () => void }) {
+  const [revealed, setRevealed] = useState(false)
   const { svgRef, downloading, downloadError, handleDownload } = useMomentCardDownload(moment)
+  const rarityStyle = MOMENT_RARITY_STYLE[momentRarity(moment)]
+
+  if (!revealed) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-4">
+        <MomentReel moment={moment} onLanded={() => setRevealed(true)} />
+        <p className="text-[11px] font-bold uppercase tracking-widest text-white/40">Opening the live match pack…</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col items-center gap-4 pb-1 text-center md:flex-row md:items-start md:gap-5 md:text-left">
       <div className="flex w-[11.5rem] shrink-0 flex-col items-center gap-3">
-        <div className="[perspective:1200px]">
-          <div className="relative h-64 w-[11.5rem] animate-[card-flip_950ms_cubic-bezier(.3,.9,.35,1.08)_both] [transform-style:preserve-3d]">
-            <div className="absolute inset-0 animate-[card-glow_2.4s_ease-in-out_1s_infinite] [backface-visibility:hidden]">
-              <MomentCardArt ref={svgRef} moment={moment} className="h-64 w-[11.5rem] rounded-2xl" />
-            </div>
-          </div>
+        <div className="animate-[card-glow_2.4s_ease-in-out_infinite]">
+          <MomentCardArt ref={svgRef} moment={moment} className="h-64 w-[11.5rem] rounded-2xl" />
         </div>
         <MomentShareButtons moment={moment} downloading={downloading} downloadError={downloadError} onDownload={handleDownload} />
+        <MomentClaimButton moment={moment} />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col items-center gap-2 md:items-start animate-[rise-in_500ms_ease-out_450ms_both]">
-        <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#ffd447]">
-          {moment.kind === 'flip' ? 'Favorite Flip' : 'Odds Swing'}
-        </span>
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-2 md:items-start animate-[rise-in_500ms_ease-out_both]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#ffd447]">
+            {moment.kind === 'flip' ? 'Favorite Flip' : 'Odds Swing'}
+          </span>
+          <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest ${rarityStyle.badge}`}>
+            {rarityStyle.label}
+          </span>
+        </div>
         <div className="text-2xl font-black tracking-tight text-white">
           {moment.team} <span className="text-white/40">vs</span> {moment.opponent}
         </div>
@@ -217,7 +304,7 @@ function MomentReveal({ moment, queueCount, onDismiss }: { moment: MomentResult;
           onClick={onDismiss}
           className="mt-4 w-full rounded-full bg-white px-4 py-3 text-xs font-bold uppercase tracking-widest text-ink transition-colors hover:bg-[#ffd447] md:w-auto"
         >
-          {queueCount > 0 ? `Next Moment (${queueCount} waiting)` : 'Dismiss'}
+          {queueCount > 0 ? `Dismiss (${queueCount} more waiting)` : 'Dismiss'}
         </button>
       </div>
     </div>

@@ -1,6 +1,9 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{self, Transfer as SolTransfer};
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{self, spl_token::instruction::AuthorityType, Mint, MintTo, SetAuthority, Token, TokenAccount};
+use anchor_spl::token::{
+    self, spl_token::instruction::AuthorityType, CloseAccount, Mint, MintTo, SetAuthority, Token, TokenAccount, Transfer,
+};
 use ephemeral_vrf_sdk::anchor::vrf;
 use ephemeral_vrf_sdk::instructions::{create_request_high_priority_scoped_randomness_ix, RequestRandomnessParams};
 use ephemeral_vrf_sdk::types::SerializableAccountMeta;
@@ -18,6 +21,14 @@ pub const PLAYER_SEED: &[u8] = b"player_v2";
 pub const CARD_MINT_SEED: &[u8] = b"card_mint_v2";
 pub const CARD_RECORD_SEED: &[u8] = b"card_record";
 pub const TREASURY_SEED: &[u8] = b"treasury";
+// Moment mint PDAs are seeded from the Moment's own memo-tx signature (not the claiming
+// wallet) so the first successful claim permanently takes the one mint address that will
+// ever exist for that Moment — a second claim attempt collides on `init` and fails.
+pub const MOMENT_RECORD_SEED: &[u8] = b"moment_record";
+pub const MOMENT_MINT_SEED: &[u8] = b"moment_mint_v1";
+pub const LISTING_SEED: &[u8] = b"listing";
+// 2.5% of every marketplace sale, routed to the treasury PDA.
+pub const MARKETPLACE_FEE_BPS: u16 = 250;
 
 // Pull the pity lever after this many pulls without a Legendary
 pub const PITY_THRESHOLD: u32 = 50;
@@ -191,6 +202,203 @@ pub mod gacha_er {
         Ok(())
     }
 
+    /// Mints a World Cup Moment as a scarce 1-of-1 NFT. The mint PDA is derived from the
+    /// Moment's own memo-tx signature, not the claiming wallet, so whoever claims a given
+    /// Moment first permanently owns the only mint that will ever exist for it — a second
+    /// claim attempt on the same signature collides on `init` and fails outright.
+    ///
+    /// fixture_id/kind/rarity/delta_bps are trusted client-supplied values, same trust level
+    /// this program already extends to mint_card_nft's rarity/category — there is no on-chain
+    /// oracle check tying them back to the real off-chain Moment behind `signature_bytes`.
+    pub fn mint_moment_nft(
+        ctx: Context<MintMomentNft>,
+        signature_bytes: [u8; 64],
+        fixture_id: u32,
+        kind: u8,
+        rarity: u8,
+        delta_bps: i16,
+    ) -> Result<()> {
+        require!(kind <= 1, GachaError::InvalidKind);
+        require!(rarity <= 2, GachaError::InvalidRarity);
+
+        let record = &mut ctx.accounts.moment_record;
+        record.mint = ctx.accounts.mint.key();
+        record.fixture_id = fixture_id;
+        record.kind = kind;
+        record.rarity = rarity;
+        record.delta_bps = delta_bps;
+        record.signature = signature_bytes;
+
+        let mint_bump = ctx.bumps.mint;
+        let mint_seeds: &[&[u8]] = &[
+            MOMENT_MINT_SEED,
+            &signature_bytes[0..32],
+            &signature_bytes[32..64],
+            &[mint_bump],
+        ];
+        let signer_seeds: &[&[&[u8]]] = &[mint_seeds];
+
+        token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.key(),
+                MintTo {
+                    mint: ctx.accounts.mint.to_account_info(),
+                    to: ctx.accounts.token_account.to_account_info(),
+                    authority: ctx.accounts.mint.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            1,
+        )?;
+
+        token::set_authority(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.key(),
+                SetAuthority {
+                    current_authority: ctx.accounts.mint.to_account_info(),
+                    account_or_mint: ctx.accounts.mint.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            AuthorityType::MintTokens,
+            None,
+        )?;
+
+        token::set_authority(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.key(),
+                SetAuthority {
+                    current_authority: ctx.accounts.mint.to_account_info(),
+                    account_or_mint: ctx.accounts.mint.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            AuthorityType::FreezeAccount,
+            None,
+        )?;
+
+        Ok(())
+    }
+
+    /// Lists an owned NFT (a Tarot card or a Moment — this doesn't care which) for sale.
+    /// Escrows the token in a vault ATA owned by the listing PDA until bought or cancelled.
+    pub fn list_card(ctx: Context<ListCard>, price: u64) -> Result<()> {
+        require!(price > 0, GachaError::InvalidPrice);
+
+        let listing = &mut ctx.accounts.listing;
+        listing.seller = ctx.accounts.seller.key();
+        listing.mint = ctx.accounts.mint.key();
+        listing.price = price;
+        listing.bump = ctx.bumps.listing;
+
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                Transfer {
+                    from: ctx.accounts.seller_token_account.to_account_info(),
+                    to: ctx.accounts.vault.to_account_info(),
+                    authority: ctx.accounts.seller.to_account_info(),
+                },
+            ),
+            1,
+        )?;
+
+        Ok(())
+    }
+
+    /// Reclaims a listed NFT back to the seller and closes the escrow.
+    pub fn cancel_listing(ctx: Context<CancelListing>) -> Result<()> {
+        let mint_key = ctx.accounts.mint.key();
+        let bump = ctx.accounts.listing.bump;
+        let listing_seeds: &[&[u8]] = &[LISTING_SEED, mint_key.as_ref(), &[bump]];
+        let signer_seeds: &[&[&[u8]]] = &[listing_seeds];
+
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.key(),
+                Transfer {
+                    from: ctx.accounts.vault.to_account_info(),
+                    to: ctx.accounts.seller_token_account.to_account_info(),
+                    authority: ctx.accounts.listing.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            1,
+        )?;
+
+        token::close_account(CpiContext::new_with_signer(
+            ctx.accounts.token_program.key(),
+            CloseAccount {
+                account: ctx.accounts.vault.to_account_info(),
+                destination: ctx.accounts.seller.to_account_info(),
+                authority: ctx.accounts.listing.to_account_info(),
+            },
+            signer_seeds,
+        ))?;
+
+        Ok(())
+    }
+
+    /// Buys a listed NFT: pays the seller (minus a marketplace fee routed to the treasury),
+    /// transfers the token out of escrow, and closes the escrow.
+    pub fn buy_card(ctx: Context<BuyCard>) -> Result<()> {
+        let price = ctx.accounts.listing.price;
+        let fee = (price as u128 * MARKETPLACE_FEE_BPS as u128 / 10_000) as u64;
+        let seller_amount = price - fee;
+
+        system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.key(),
+                SolTransfer {
+                    from: ctx.accounts.buyer.to_account_info(),
+                    to: ctx.accounts.treasury.to_account_info(),
+                },
+            ),
+            fee,
+        )?;
+
+        system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.key(),
+                SolTransfer {
+                    from: ctx.accounts.buyer.to_account_info(),
+                    to: ctx.accounts.seller.to_account_info(),
+                },
+            ),
+            seller_amount,
+        )?;
+
+        let mint_key = ctx.accounts.mint.key();
+        let bump = ctx.accounts.listing.bump;
+        let listing_seeds: &[&[u8]] = &[LISTING_SEED, mint_key.as_ref(), &[bump]];
+        let signer_seeds: &[&[&[u8]]] = &[listing_seeds];
+
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.key(),
+                Transfer {
+                    from: ctx.accounts.vault.to_account_info(),
+                    to: ctx.accounts.buyer_token_account.to_account_info(),
+                    authority: ctx.accounts.listing.to_account_info(),
+                },
+                signer_seeds,
+            ),
+            1,
+        )?;
+
+        token::close_account(CpiContext::new_with_signer(
+            ctx.accounts.token_program.key(),
+            CloseAccount {
+                account: ctx.accounts.vault.to_account_info(),
+                destination: ctx.accounts.seller.to_account_info(),
+                authority: ctx.accounts.listing.to_account_info(),
+            },
+            signer_seeds,
+        ))?;
+
+        Ok(())
+    }
+
     /// Cleanup for cards minted before freeze authority was revoked at mint time: revokes it
     /// now. This is safe to leave permissionless — it only ever removes a capability (no one
     /// can use it to freeze, steal, or transfer anything), so anyone can call it on anyone's
@@ -225,6 +433,10 @@ pub enum GachaError {
     InvalidRarity,
     #[msg("Category byte must be 0 (Life), 1 (Relationship), or 2 (Meme)")]
     InvalidCategory,
+    #[msg("Moment kind byte must be 0 (swing) or 1 (flip)")]
+    InvalidKind,
+    #[msg("Listing price must be greater than zero")]
+    InvalidPrice,
 }
 
 /// 0 = Common, 1 = Rare, 2 = Legendary.
@@ -435,6 +647,145 @@ pub struct MintCardNft<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(signature_bytes: [u8; 64])]
+pub struct MintMomentNft<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    /// Seeded from the Moment's own signature (not the payer) — the whole first-claimer-wins
+    /// scarcity mechanism lives in this seed derivation.
+    #[account(
+        init,
+        payer = payer,
+        mint::decimals = 0,
+        mint::authority = mint,
+        mint::freeze_authority = mint,
+        seeds = [MOMENT_MINT_SEED, &signature_bytes[0..32], &signature_bytes[32..64]],
+        bump,
+    )]
+    pub mint: Account<'info, Mint>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + MomentRecord::INIT_SPACE,
+        seeds = [MOMENT_RECORD_SEED, mint.key().as_ref()],
+        bump,
+    )]
+    pub moment_record: Account<'info, MomentRecord>,
+
+    #[account(
+        init,
+        payer = payer,
+        associated_token::mint = mint,
+        associated_token::authority = payer,
+    )]
+    pub token_account: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ListCard<'info> {
+    #[account(mut)]
+    pub seller: Signer<'info>,
+    pub mint: Account<'info, Mint>,
+    #[account(mut, associated_token::mint = mint, associated_token::authority = seller)]
+    pub seller_token_account: Account<'info, TokenAccount>,
+    #[account(
+        init,
+        payer = seller,
+        space = 8 + Listing::INIT_SPACE,
+        seeds = [LISTING_SEED, mint.key().as_ref()],
+        bump,
+    )]
+    pub listing: Account<'info, Listing>,
+    /// Escrow vault, owned by the listing PDA — only this specific listing can move it.
+    #[account(
+        init,
+        payer = seller,
+        associated_token::mint = mint,
+        associated_token::authority = listing,
+    )]
+    pub vault: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CancelListing<'info> {
+    #[account(mut)]
+    pub seller: Signer<'info>,
+    pub mint: Account<'info, Mint>,
+    #[account(
+        mut,
+        has_one = seller,
+        close = seller,
+        seeds = [LISTING_SEED, mint.key().as_ref()],
+        bump = listing.bump,
+    )]
+    pub listing: Account<'info, Listing>,
+    #[account(mut, associated_token::mint = mint, associated_token::authority = listing)]
+    pub vault: Account<'info, TokenAccount>,
+    /// init_if_needed: the seller could have closed their own empty ATA out-of-band while
+    /// this listing was active — cancelling shouldn't get stuck on that.
+    #[account(
+        init_if_needed,
+        payer = seller,
+        associated_token::mint = mint,
+        associated_token::authority = seller,
+    )]
+    pub seller_token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct BuyCard<'info> {
+    #[account(mut)]
+    pub buyer: Signer<'info>,
+    /// has_one = seller on `listing` (below) is load-bearing: it's what stops a buyer from
+    /// substituting their own wallet here and receiving both the NFT and the payment.
+    #[account(mut)]
+    pub seller: SystemAccount<'info>,
+    pub mint: Account<'info, Mint>,
+    #[account(
+        mut,
+        has_one = seller,
+        close = seller,
+        seeds = [LISTING_SEED, mint.key().as_ref()],
+        bump = listing.bump,
+    )]
+    pub listing: Account<'info, Listing>,
+    /// CHECK: program-derived lamport sink with no data; same account `initialize` creates,
+    /// init_if_needed here too so a buyer who's never called `initialize` isn't blocked.
+    #[account(
+        init_if_needed,
+        payer = buyer,
+        space = 0,
+        seeds = [TREASURY_SEED],
+        bump,
+    )]
+    pub treasury: UncheckedAccount<'info>,
+    #[account(mut, associated_token::mint = mint, associated_token::authority = listing)]
+    pub vault: Account<'info, TokenAccount>,
+    #[account(
+        init_if_needed,
+        payer = buyer,
+        associated_token::mint = mint,
+        associated_token::authority = buyer,
+    )]
+    pub buyer_token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 #[instruction(holder: Pubkey, pull_index: u32)]
 pub struct RevokeFreezeAuthority<'info> {
     /// Pays the transaction fee — deliberately not required to be the card's holder, since
@@ -462,4 +813,30 @@ pub struct CardRecord {
     /// so a wallet's minted history can be reconstructed later.
     pub category: u8,
     pub special: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct MomentRecord {
+    pub mint: Pubkey,
+    pub fixture_id: u32,
+    /// 0 = swing, 1 = flip.
+    pub kind: u8,
+    /// 0 = Common, 1 = Rare, 2 = Legendary — client-computed from the Moment's real
+    /// probability delta, same trust level as CardRecord's rarity.
+    pub rarity: u8,
+    /// deltaProbability * 100, rounded, signed.
+    pub delta_bps: i16,
+    /// Raw decoded memo-tx signature this Moment was originally sealed with — lets anyone
+    /// cross-reference this mint against the real on-chain Moment it claims to represent.
+    pub signature: [u8; 64],
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct Listing {
+    pub seller: Pubkey,
+    pub mint: Pubkey,
+    pub price: u64,
+    pub bump: u8,
 }

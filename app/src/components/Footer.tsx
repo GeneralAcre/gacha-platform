@@ -76,7 +76,7 @@ export function Footer({
 
       <div className="border-t border-paper/10 px-4 py-8 md:px-6">
         <p className="mx-auto max-w-xl text-center text-xs leading-6 text-paper/50 sm:text-sm">
-          Obsession is a fully on-chain fortune-card gacha on Solana — draw sealed cards, follow your reading, and grow your collection.
+          Moment is a fully on-chain World Cup moments platform on Solana.
           For entertainment only. Not financial, legal, or relationship advice.
         </p>
         <div className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-full border border-paper/15 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-paper/60">

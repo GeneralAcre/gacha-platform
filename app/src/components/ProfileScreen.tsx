@@ -1,30 +1,50 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { AnchorProvider, Program, web3 } from '@coral-xyz/anchor'
+import { AnchorProvider, Program, web3, BN } from '@coral-xyz/anchor'
 import idl from '../idl/gacha_er.json'
-import { resolveCard, type CardInfo, type Rarity } from './cardRegistry'
-import { categoryFromByte, getCategory, type Category } from './categories'
+import type { CardInfo, Rarity } from './cardRegistry'
+import { getCategory, type Category } from './categories'
+import {
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  cardRecordPda,
+  momentRecordPda,
+  listingPda,
+  ataPda,
+} from '../decks/marketplace/marketplaceApi'
+import { MOMENT_RARITY_STYLE, type MomentRarity } from '../decks/worldcup/momentRarity'
 
 type AnchorWallet = ConstructorParameters<typeof AnchorProvider>[1]
-
-const PROGRAM_ID = new web3.PublicKey('4re47fFt4ty2BkNS9NuhBUqDSbGZYhydkt42f4c9E7zv')
-const ER_ENDPOINT = 'https://devnet-as.magicblock.app'
-const ER_WS_ENDPOINT = 'wss://devnet-as.magicblock.app'
-// How far back to look for minted cards. Caps RPC batching (getMultipleAccountsInfo
-// tops out around 100 pubkeys per call) — shows the most recent pulls, not the oldest.
-const MAX_PULLS_SCANNED = 100
 
 const RARITY_LABEL: Record<Rarity, string> = {
   minor: 'MINOR OMEN',
   major: 'MAJOR OMEN',
   grand: 'GRAND REVELATION',
 }
+const MOMENT_RARITY_BY_BYTE: MomentRarity[] = ['common', 'rare', 'legendary']
 
-interface MintedCard {
-  mint: string
+interface OwnedCard {
+  kind: 'card'
+  mint: web3.PublicKey
   card: CardInfo
   category: Category
-  pullIndex: number
+}
+
+interface OwnedMoment {
+  kind: 'moment'
+  mint: web3.PublicKey
+  fixtureId: number
+  momentKind: number
+  rarity: number
+  deltaBps: number
+}
+
+type OwnedItem = OwnedCard | OwnedMoment
+
+interface MyListing {
+  listingPda: web3.PublicKey
+  mint: web3.PublicKey
+  priceLamports: number
 }
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -36,103 +56,174 @@ function chunk<T>(items: T[], size: number): T[][] {
 export function ProfileScreen() {
   const { connection } = useConnection()
   const wallet = useWallet()
-  const [cards, setCards] = useState<MintedCard[]>([])
+  const [owned, setOwned] = useState<OwnedItem[]>([])
+  const [myListings, setMyListings] = useState<MyListing[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [busyMint, setBusyMint] = useState<string | null>(null)
+  const [listingDraft, setListingDraft] = useState<Record<string, string>>({})
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!wallet.publicKey) {
-      setCards([])
+      setOwned([])
+      setMyListings([])
       setError(null)
       return
     }
     const walletPublicKey = wallet.publicKey
-    let cancelled = false
     setLoading(true)
     setError(null)
 
-    async function load() {
-      try {
-        const baseProvider = new AnchorProvider(connection, wallet as unknown as AnchorWallet, { preflightCommitment: 'processed' })
-        const baseProgram = new Program(idl, baseProvider)
-        const erConnection = new web3.Connection(ER_ENDPOINT, { wsEndpoint: ER_WS_ENDPOINT, commitment: 'confirmed' })
-        const erProvider = new AnchorProvider(erConnection, wallet as unknown as AnchorWallet, { preflightCommitment: 'processed' })
-        const erProgram = new Program(idl, erProvider)
+    try {
+      const baseProvider = new AnchorProvider(connection, wallet as unknown as AnchorWallet, { preflightCommitment: 'processed' })
+      const baseProgram = new Program(idl, baseProvider)
 
-        const [playerPda] = web3.PublicKey.findProgramAddressSync(
-          [Buffer.from('player_v2'), walletPublicKey.toBuffer()],
-          PROGRAM_ID
-        )
+      // Real holdings, not guessed pull indices — this is what actually lets a card
+      // bought on the marketplace (minted under someone else's pubkey) show up here,
+      // and lets a sold-away card stop showing up.
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(walletPublicKey, { programId: TOKEN_PROGRAM_ID })
+      const mints = tokenAccounts.value
+        .map((a) => a.account.data.parsed?.info)
+        .filter((info) => info?.tokenAmount?.decimals === 0 && info?.tokenAmount?.uiAmount === 1)
+        .map((info) => new web3.PublicKey(info.mint))
 
-        let pullsDone = 0
-        try {
-          const playerAccounts = erProgram.account as unknown as Record<string, { fetch: (pda: web3.PublicKey) => Promise<{ pullsDone: number }> }>
-          const player = await playerAccounts.player.fetch(playerPda)
-          pullsDone = player.pullsDone
-        } catch {
-          pullsDone = 0
-        }
+      const foundItems: OwnedItem[] = []
+      for (const batch of chunk(mints, 50)) {
+        const cardPdas = batch.map(cardRecordPda)
+        const momentPdas = batch.map(momentRecordPda)
+        const [cardInfos, momentInfos] = await Promise.all([
+          connection.getMultipleAccountsInfo(cardPdas),
+          connection.getMultipleAccountsInfo(momentPdas),
+        ])
 
-        if (pullsDone === 0) {
-          if (!cancelled) setCards([])
-          return
-        }
-
-        const from = Math.max(1, pullsDone - MAX_PULLS_SCANNED + 1)
-        const pullIndexes: number[] = []
-        for (let i = pullsDone; i >= from; i--) pullIndexes.push(i)
-
-        const mintPdas = pullIndexes.map((pullIndex) => {
-          const pullIndexBytes = Buffer.alloc(4)
-          pullIndexBytes.writeUInt32LE(pullIndex)
-          return web3.PublicKey.findProgramAddressSync(
-            [Buffer.from('card_mint_v2'), walletPublicKey.toBuffer(), pullIndexBytes],
-            PROGRAM_ID
-          )[0]
-        })
-        const cardRecordPdas = mintPdas.map(
-          (mintPda) => web3.PublicKey.findProgramAddressSync([Buffer.from('card_record'), mintPda.toBuffer()], PROGRAM_ID)[0]
-        )
-
-        const found: MintedCard[] = []
-        for (const batch of chunk(
-          cardRecordPdas.map((pda, i) => ({ pda, pullIndex: pullIndexes[i], mint: mintPdas[i] })),
-          100
-        )) {
-          const infos = await connection.getMultipleAccountsInfo(batch.map((b) => b.pda))
-          infos.forEach((info, i) => {
-            if (!info) return
+        batch.forEach((mint, i) => {
+          const cardInfo = cardInfos[i]
+          if (cardInfo) {
             try {
-              const record = baseProgram.coder.accounts.decode<{
-                rarity: number
-                cardSeed: number
-                category: number
-                special: number
-              }>('cardRecord', info.data)
-              const category = categoryFromByte(record.category)
-              const card = resolveCard(category, record.rarity, record.cardSeed, record.special === 1)
-              found.push({ mint: batch[i].mint.toBase58(), card, category, pullIndex: batch[i].pullIndex })
+              baseProgram.coder.accounts.decode<{ rarity: number; cardSeed: number; category: number; special: number }>(
+                'cardRecord',
+                cardInfo.data
+              )
+              // Recognized Tarot holding: do not include it in the World Cup-only profile.
+              return
             } catch {
-              /* not a CardRecord — skip */
+              /* not a CardRecord — fall through */
             }
-          })
-        }
+          }
+          const momentInfo = momentInfos[i]
+          if (momentInfo) {
+            try {
+              const record = baseProgram.coder.accounts.decode<{ fixtureId: number; kind: number; rarity: number; deltaBps: number }>(
+                'momentRecord',
+                momentInfo.data
+              )
+              foundItems.push({ kind: 'moment', mint, fixtureId: record.fixtureId, momentKind: record.kind, rarity: record.rarity, deltaBps: record.deltaBps })
+            } catch {
+              /* neither record type — not one of ours, skip */
+            }
+          }
+        })
+      }
 
-        found.sort((a, b) => b.pullIndex - a.pullIndex)
-        if (!cancelled) setCards(found)
+      // Own active listings — these hold the token in escrow, so they never appear in
+      // the wallet-owned scan above; found separately by filtering Listing.seller.
+      const listingAccounts = (baseProgram.account as unknown as {
+        listing: {
+          all: (filters: { memcmp: { offset: number; bytes: string } }[]) => Promise<{ publicKey: web3.PublicKey; account: { mint: web3.PublicKey; price: BN | number } }[]>
+        }
+      }).listing
+      const rawListings = await listingAccounts.all([{ memcmp: { offset: 8, bytes: walletPublicKey.toBase58() } }])
+      const listingMomentInfos = await connection.getMultipleAccountsInfo(rawListings.map(({ account }) => momentRecordPda(account.mint)))
+      const listings: MyListing[] = rawListings.flatMap(({ publicKey, account }, index) => listingMomentInfos[index] ? [{
+        listingPda: publicKey,
+        mint: account.mint,
+        priceLamports: typeof account.price === 'number' ? account.price : Number(account.price.toString()),
+      }] : [])
+
+      setOwned(foundItems)
+      setMyListings(listings)
+    } catch (e) {
+      console.error(e)
+      setError('Could not load your collection right now — try again in a moment.')
+    } finally {
+      setLoading(false)
+    }
+  }, [connection, wallet])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const handleList = useCallback(
+    async (mint: web3.PublicKey) => {
+      if (!wallet.publicKey) return
+      const draft = listingDraft[mint.toBase58()]
+      const priceSol = Number(draft)
+      if (!draft || !Number.isFinite(priceSol) || priceSol <= 0) {
+        setError('Enter a price greater than 0 SOL before listing.')
+        return
+      }
+      const priceLamports = Math.round(priceSol * web3.LAMPORTS_PER_SOL)
+      setBusyMint(mint.toBase58())
+      setError(null)
+      try {
+        const provider = new AnchorProvider(connection, wallet as unknown as AnchorWallet, { preflightCommitment: 'processed' })
+        const program = new Program(idl, provider)
+        await program.methods
+          .listCard(new BN(priceLamports))
+          .accounts({
+            seller: wallet.publicKey,
+            mint,
+            sellerTokenAccount: ataPda(wallet.publicKey, mint),
+            listing: listingPda(mint),
+            vault: ataPda(listingPda(mint), mint),
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            systemProgram: web3.SystemProgram.programId,
+          })
+          .rpc()
+        await load()
       } catch (e) {
         console.error(e)
-        if (!cancelled) setError('Could not load your collection right now — try again in a moment.')
+        setError(e instanceof Error ? e.message : 'Listing failed')
       } finally {
-        if (!cancelled) setLoading(false)
+        setBusyMint(null)
       }
-    }
+    },
+    [connection, wallet, listingDraft, load]
+  )
 
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [connection, wallet, wallet.publicKey])
+  const handleCancel = useCallback(
+    async (listing: MyListing) => {
+      if (!wallet.publicKey) return
+      setBusyMint(listing.mint.toBase58())
+      setError(null)
+      try {
+        const provider = new AnchorProvider(connection, wallet as unknown as AnchorWallet, { preflightCommitment: 'processed' })
+        const program = new Program(idl, provider)
+        await program.methods
+          .cancelListing()
+          .accounts({
+            seller: wallet.publicKey,
+            mint: listing.mint,
+            listing: listing.listingPda,
+            vault: ataPda(listing.listingPda, listing.mint),
+            sellerTokenAccount: ataPda(wallet.publicKey, listing.mint),
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            systemProgram: web3.SystemProgram.programId,
+          })
+          .rpc()
+        await load()
+      } catch (e) {
+        console.error(e)
+        setError(e instanceof Error ? e.message : 'Cancel failed')
+      } finally {
+        setBusyMint(null)
+      }
+    },
+    [connection, wallet, load]
+  )
 
   const walletAddress = wallet.publicKey?.toBase58() ?? null
 
@@ -141,7 +232,7 @@ export function ProfileScreen() {
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink/10 pb-5">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-ink/45">Player profile</p>
-          <h1 className="mt-2 text-4xl font-black tracking-tight text-ink md:text-5xl">My fortune cards</h1>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-ink md:text-5xl">My collection</h1>
           {walletAddress ? (
             <p className="mt-2 font-mono text-xs text-ink/55">
               Connected · {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}
@@ -151,52 +242,128 @@ export function ProfileScreen() {
           )}
         </div>
         <div className="rounded-2xl border border-ink/10 bg-paper px-5 py-3 text-center">
-          <p className="text-2xl font-black text-ink">{cards.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-ink/45">NFTs minted</p>
+          <p className="text-2xl font-black text-ink">{owned.length}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ink/45">Held now</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mt-4 w-full [overflow-wrap:anywhere] rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {!walletAddress ? null : loading ? (
         <div className="mt-10 rounded-2xl border border-ink/10 bg-paper p-8 text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-ink/55">Reading the chain...</p>
         </div>
-      ) : error ? (
-        <div className="mt-10 rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-          <p className="text-sm font-bold uppercase tracking-widest text-red-600">{error}</p>
-        </div>
-      ) : cards.length === 0 ? (
-        <div className="mt-10 rounded-2xl border border-ink/10 bg-paper p-8 text-center">
-          <p className="text-2xl font-black tracking-tight text-ink">Your cabinet is waiting.</p>
-          <p className="mt-2 text-sm text-ink/55">Draw a fortune and claim it as an NFT to begin your collection.</p>
-        </div>
       ) : (
-        <div className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((entry) => (
-            <a
-              key={entry.mint}
-              href={`https://explorer.solana.com/address/${entry.mint}?cluster=devnet`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex flex-col gap-4 rounded-2xl border border-ink/10 bg-paper p-3 transition-transform hover:-translate-y-1 sm:flex-row"
-            >
-              <img
-                src={entry.card.image}
-                alt={`${entry.card.name} card art`}
-                className="h-36 w-full max-w-[6rem] shrink-0 rounded-xl border border-ink/10 bg-ink object-cover sm:w-24"
-              />
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-flare">
-                    {RARITY_LABEL[entry.card.rarity]} · {getCategory(entry.category).label}
-                  </span>
-                </div>
-                <div className="mt-2 font-black tracking-tight text-ink">{entry.card.name}</div>
-                <p className="mt-1 text-xs italic text-ink/65">"{entry.card.reading}"</p>
-                <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-ink/35">View on Explorer ↗</p>
+        <>
+          {myListings.length > 0 && (
+            <div className="mt-8">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-ink/45">Your active listings</p>
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {myListings.map((listing) => (
+                  <div key={listing.listingPda.toBase58()} className="flex items-center justify-between gap-3 rounded-2xl border border-flare/25 bg-flare/5 p-4">
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-[10px] text-ink/45">{listing.mint.toBase58().slice(0, 10)}…</p>
+                      <p className="font-black text-ink">{(listing.priceLamports / web3.LAMPORTS_PER_SOL).toFixed(3)} SOL</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCancel(listing)}
+                      disabled={busyMint === listing.mint.toBase58()}
+                      className="shrink-0 rounded-full border border-ink/15 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ink hover:border-ink disabled:opacity-50"
+                    >
+                      {busyMint === listing.mint.toBase58() ? 'Working…' : 'Cancel'}
+                    </button>
+                  </div>
+                ))}
               </div>
-            </a>
-          ))}
-        </div>
+            </div>
+          )}
+
+          {owned.length === 0 && myListings.length === 0 ? (
+            <div className="mt-10 rounded-2xl border border-ink/10 bg-paper p-8 text-center">
+              <p className="text-2xl font-black tracking-tight text-ink">Your cabinet is waiting.</p>
+              <p className="mt-2 text-sm text-ink/55">Draw a fortune and claim it as an NFT to begin your collection.</p>
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {owned.map((item) => {
+                const mintKey = item.mint.toBase58()
+                const isBusy = busyMint === mintKey
+                return (
+                  <div key={mintKey} className="flex flex-col gap-3 rounded-2xl border border-ink/10 bg-paper p-3">
+                    {item.kind === 'card' ? (
+                      <div className="flex gap-4">
+                        <img
+                          src={item.card.image}
+                          alt={`${item.card.name} card art`}
+                          className="h-36 w-24 shrink-0 rounded-xl border border-ink/10 bg-ink object-cover"
+                        />
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-flare">
+                            {RARITY_LABEL[item.card.rarity]} · {getCategory(item.category).label}
+                          </span>
+                          <div className="mt-2 font-black tracking-tight text-ink">{item.card.name}</div>
+                          <p className="mt-1 text-xs italic text-ink/65">"{item.card.reading}"</p>
+                          <a
+                            href={`https://explorer.solana.com/address/${mintKey}?cluster=devnet`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-block text-[10px] font-bold uppercase tracking-widest text-ink/35"
+                          >
+                            View on Explorer ↗
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-widest"
+                          style={{ color: MOMENT_RARITY_STYLE[MOMENT_RARITY_BY_BYTE[item.rarity] ?? 'common'].accent }}
+                        >
+                          {MOMENT_RARITY_STYLE[MOMENT_RARITY_BY_BYTE[item.rarity] ?? 'common'].label} · {item.momentKind === 1 ? 'Favorite Flip' : 'Odds Swing'}
+                        </span>
+                        <div className="mt-2 font-black tracking-tight text-ink">Fixture #{item.fixtureId}</div>
+                        <p className="mt-1 text-xs text-ink/65">{Math.round(item.deltaBps / 100)} point swing</p>
+                        <a
+                          href={`https://explorer.solana.com/address/${mintKey}?cluster=devnet`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-block text-[10px] font-bold uppercase tracking-widest text-ink/35"
+                        >
+                          View on Explorer ↗
+                        </a>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 border-t border-ink/10 pt-3">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        placeholder="Price in SOL"
+                        value={listingDraft[mintKey] ?? ''}
+                        onChange={(e) => setListingDraft((prev) => ({ ...prev, [mintKey]: e.target.value }))}
+                        className="w-full min-w-0 rounded-full border border-ink/15 px-3 py-2 text-xs text-ink outline-none focus:border-flare"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleList(item.mint)}
+                        disabled={isBusy}
+                        className="shrink-0 rounded-full bg-ink px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-paper hover:bg-flare disabled:opacity-50"
+                      >
+                        {isBusy ? 'Working…' : 'List'}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

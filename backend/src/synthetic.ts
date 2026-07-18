@@ -26,6 +26,7 @@ export function syntheticSequence(): OddsUpdate[] {
 
   return script.map((s) => ({
     fixtureId,
+    competition: "World Cup",
     team,
     opponent,
     winProbability: s.winProbability,

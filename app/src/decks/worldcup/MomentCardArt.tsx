@@ -1,12 +1,23 @@
 import { forwardRef, useCallback, useId, useRef, useState } from 'react'
 import type { MomentResult } from './momentsApi'
+import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
 
-// Sports-card style: bold color-blocked panel (gold for a favorite flip, green
-// for a swing), the swing magnitude as one big hero number, a clean name bar
-// at the bottom. Deliberately minimal -- narrative/fixture-id/branding live in
-// the click-through detail modal, not on the card face.
-const FLIP_THEME = { from: '#5c3d0d', to: '#2e1e06', accent: '#ffd447' }
-const SWING_THEME = { from: '#0d4d3a', to: '#082e23', accent: '#8fe3b0' }
+// Sports-card style: a real stadium photo as the backing art (gold tint for a favorite
+// flip, green for a swing), the swing magnitude as one big hero number in a translucent
+// "glass" panel so it stays readable over the photo, a clean name bar at the bottom.
+// Deliberately minimal -- narrative/fixture-id/from-to percentages live in the
+// click-through detail modal, not on the card face (see MomentDetailModal.tsx).
+const FLIP_THEME = { tint: '#4a2f05', accent: '#ffd447' }
+const SWING_THEME = { tint: '#06331f', accent: '#8fe3b0' }
+// Only 2 backdrop photos exist for pull cards (see worldcup-card/): this is the "Event
+// Pack" one -- every Moment reveal (live odds-swing pulls) uses this art with the real
+// swing data written on top of it, matching CollectionCardArt.tsx's "Match Pack" art.
+const STADIUM_ART = '/worldcup-card/Event-Pull-card.png'
+
+// Rarity is graded from the swing itself (see momentRarity.ts), not the flip/swing kind --
+// the outer border weight is how "big a pull" this was, independent of what type it is.
+const RARITY_BORDER_WIDTH = { common: 0.6, rare: 1.6, legendary: 2.6 }
+const RARITY_BORDER_OPACITY = { common: 0.18, rare: 0.85, legendary: 1 }
 
 export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; className?: string }>(
   function MomentCardArt({ moment, className = '' }, ref) {
@@ -14,6 +25,8 @@ export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; c
     const isFlip = moment.kind === 'flip'
     const theme = isFlip ? FLIP_THEME : SWING_THEME
     const isUp = moment.toProbability >= moment.fromProbability
+    const rarity = momentRarity(moment)
+    const rarityStyle = MOMENT_RARITY_STYLE[rarity]
 
     return (
       <svg
@@ -22,13 +35,15 @@ export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; c
         width={100}
         height={140}
         role="img"
-        aria-label={`${moment.team} vs ${moment.opponent} moment card`}
+        aria-label={`${moment.team} vs ${moment.opponent} moment card — ${rarityStyle.label}`}
         className={className}
       >
         <defs>
-          <linearGradient id={`bg-${uid}`} x1="0" y1="0" x2="0.3" y2="1">
-            <stop offset="0%" stopColor={theme.from} />
-            <stop offset="100%" stopColor={theme.to} />
+          <linearGradient id={`scrim-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#000000" stopOpacity="0.55" />
+            <stop offset="18%" stopColor="#000000" stopOpacity="0.05" />
+            <stop offset="68%" stopColor="#000000" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0.75" />
           </linearGradient>
           <clipPath id={`card-${uid}`}>
             <rect x="0" y="0" width="100" height="140" rx="7" />
@@ -36,37 +51,54 @@ export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; c
         </defs>
 
         <g clipPath={`url(#card-${uid})`}>
-          <rect x="0" y="0" width="100" height="140" fill={`url(#bg-${uid})`} />
+          <image href={STADIUM_ART} x="0" y="0" width="100" height="140" preserveAspectRatio="xMidYMid slice" />
+          {/* Theme tint identifies flip vs swing at a glance without hiding the photo. */}
+          <rect x="0" y="0" width="100" height="140" fill={theme.tint} opacity="0.38" />
+          {/* Scrim: darkens top (badges) and bottom (name bar) so text reads over any photo. */}
+          <rect x="0" y="0" width="100" height="140" fill={`url(#scrim-${uid})`} />
 
           {/* top chip */}
           <rect x="6" y="6" width="30" height="10" rx="5" fill="#ffffff" />
           <text x="21" y="13.2" fill="#0a0a0a" fontSize="4.4" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
             {isFlip ? 'FLIP' : 'SWING'}
           </text>
-          <text x="94" y="13" fill={theme.accent} fontSize="3.4" fontWeight="800" textAnchor="end" letterSpacing="0.4" fontFamily="Arial, sans-serif">
-            SEALED
+          <rect x="66" y="6" width="28" height="10" rx="5" fill="#00000090" />
+          <text x="80" y="12.8" fill={rarityStyle.accent} fontSize="3.4" fontWeight="800" textAnchor="middle" letterSpacing="0.4" fontFamily="Arial, sans-serif">
+            {rarityStyle.label.toUpperCase()}
           </text>
 
-          {/* hero number: the swing magnitude */}
-          <text x="50" y="72" fill="#ffffff" fontSize="30" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+          {/* hero number: the swing magnitude, in a glass panel for guaranteed contrast */}
+          <rect x="12" y="50" width="76" height="42" rx="6" fill="#000000" opacity="0.4" />
+          <rect x="12" y="50" width="76" height="42" rx="6" fill="none" stroke={theme.accent} strokeOpacity="0.35" strokeWidth="0.6" />
+          <text x="50" y="76" fill="#ffffff" fontSize="26" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
             {isUp ? '↑' : '↓'}{Math.abs(Math.round(moment.deltaProbability))}
           </text>
-          <text x="50" y="86" fill={theme.accent} fontSize="4.2" fontWeight="800" textAnchor="middle" letterSpacing="0.6" fontFamily="Arial, sans-serif">
+          <text x="50" y="87" fill={theme.accent} fontSize="4" fontWeight="800" textAnchor="middle" letterSpacing="0.6" fontFamily="Arial, sans-serif">
             POINT SWING{moment.matchMinute !== undefined ? ` · ${moment.matchMinute}'` : ''}
           </text>
 
           {/* name bar */}
-          <rect x="0" y="104" width="100" height="36" fill="#00000045" />
-          <text x="50" y="118" fill="#ffffff" fontSize="6.2" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+          <rect x="0" y="108" width="100" height="32" fill="#000000a8" />
+          <text x="50" y="122" fill="#ffffff" fontSize="6.2" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
             {moment.team}
           </text>
-          <text x="50" y="127" fill={theme.accent} fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
+          <text x="50" y="132" fill={theme.accent} fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
             vs {moment.opponent}
           </text>
-          <text x="50" y="135" fill="#ffffff70" fontSize="3.4" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
-            {Math.round(moment.fromProbability)}% {'→'} {Math.round(moment.toProbability)}%
-          </text>
         </g>
+
+        {/* Rarity-graded border: bigger swings and flips get a bolder, brighter frame. */}
+        <rect
+          x={RARITY_BORDER_WIDTH[rarity] / 2}
+          y={RARITY_BORDER_WIDTH[rarity] / 2}
+          width={100 - RARITY_BORDER_WIDTH[rarity]}
+          height={140 - RARITY_BORDER_WIDTH[rarity]}
+          rx="7"
+          fill="none"
+          stroke={rarityStyle.accent}
+          strokeWidth={RARITY_BORDER_WIDTH[rarity]}
+          strokeOpacity={RARITY_BORDER_OPACITY[rarity]}
+        />
       </svg>
     )
   }

@@ -79,6 +79,7 @@ export class SwingDetector {
       timestamp: update.timestamp,
       kind,
       narrative: buildNarrative(update.team, fromProbability, toProbability, update.matchMinute),
+      matchStarted: update.matchStarted,
     };
   }
 }

@@ -9,6 +9,10 @@ export interface OddsUpdate {
   winProbability: number;
   timestamp: number;
   matchMinute?: number;
+  /** Whether the fixture had actually kicked off at `timestamp` -- odds move pre-match too
+   * (team news, lineups), and we only know a swing came from something like a card once the
+   * match is actually underway. */
+  matchStarted: boolean;
 }
 
 export interface Moment {
@@ -23,6 +27,7 @@ export interface Moment {
   timestamp: number;
   kind: "swing" | "flip";
   narrative: string;
+  matchStarted: boolean;
 }
 
 /** A Moment that has been sealed on-chain as a devnet memo transaction. */

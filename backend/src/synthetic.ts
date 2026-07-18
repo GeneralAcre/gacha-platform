@@ -32,6 +32,7 @@ export function syntheticSequence(): OddsUpdate[] {
     winProbability: s.winProbability,
     matchMinute: s.minute,
     timestamp: baseTs + s.offsetMs,
+    matchStarted: true,
   }));
 }
 

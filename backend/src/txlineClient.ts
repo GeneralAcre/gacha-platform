@@ -129,6 +129,7 @@ function normalizeOddsEntry(raw: RawOdds, fixtureMeta: Map<number, FixtureMeta>)
       opponent: isPart1 ? meta.participant2 : meta.participant1,
       winProbability: normalized[i],
       timestamp: raw.Ts,
+      matchStarted: meta.startTimeMs !== undefined && raw.Ts >= meta.startTimeMs,
     });
   });
   return updates;

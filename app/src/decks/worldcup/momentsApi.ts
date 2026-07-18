@@ -13,6 +13,9 @@ export interface MomentResult {
   timestamp: number
   kind: 'swing' | 'flip'
   narrative: string
+  /** Whether the fixture had actually kicked off when this swing happened -- odds move
+   * pre-match too (team news, lineups), so a card-type title is only shown once true. */
+  matchStarted: boolean
   signature: string
   /** Admin-curated if set, else a generated placeholder — see backend/src/matchImages.ts. */
   imageUrl?: string

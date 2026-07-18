@@ -80,10 +80,13 @@ export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; c
             POINT SWING{moment.matchMinute !== undefined ? ` · ${moment.matchMinute}'` : ''}
           </text>
 
-          {/* name bar: card-type title (why the chance dropped), match name underneath */}
+          {/* name bar: card-type title (why the chance dropped), match name underneath.
+              A red/yellow card can only have happened once the match actually kicked off --
+              odds move pre-match too (team news, lineups), so before kickoff this only
+              shows the stat itself, never a fabricated in-match event. */}
           <rect x="0" y="108" width="100" height="32" fill="#000000a8" />
           <text x="50" y="122" fill={theme.accent} fontSize="6.4" fontWeight="900" textAnchor="middle" letterSpacing="0.4" fontFamily="Arial, sans-serif">
-            {isFlip ? 'RED CARD' : 'YELLOW CARD'}
+            {moment.matchStarted ? (isFlip ? 'RED CARD' : 'YELLOW CARD') : isFlip ? 'FLIP' : 'SWING'}
           </text>
           <text x="50" y="133" fill="#ffffff" fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
             {moment.team} vs {moment.opponent}

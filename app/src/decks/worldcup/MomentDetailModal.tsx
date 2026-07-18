@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { MomentCardArt } from './MomentCardArt'
-import { MomentClaimButton } from './MomentClaimButton'
 import { explorerTxUrl, type MomentResult } from './momentsApi'
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -12,7 +11,15 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function MomentDetailModal({ moment, onClose }: { moment: MomentResult; onClose: () => void }) {
+export function MomentDetailModal({
+  moment,
+  CardArt = MomentCardArt,
+  onClose,
+}: {
+  moment: MomentResult
+  CardArt?: typeof MomentCardArt
+  onClose: () => void
+}) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
@@ -45,7 +52,7 @@ export function MomentDetailModal({ moment, onClose }: { moment: MomentResult; o
         </button>
 
         <div className="mx-auto w-full max-w-[13rem] shrink-0">
-          <MomentCardArt moment={moment} className="w-full rounded-2xl" />
+          <CardArt moment={moment} className="w-full rounded-2xl" />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -96,8 +103,10 @@ export function MomentDetailModal({ moment, onClose }: { moment: MomentResult; o
             >
               View on Solana Explorer ↗
             </a>
-            <MomentClaimButton moment={moment} showSellControls />
           </div>
+          <p className="mt-3 text-[11px] leading-5 text-white/35">
+            This is the live feed of real sealed Moments — for browsing only. Claiming one as an NFT only happens when you actually pay to open a pack and it lands in your reveal.
+          </p>
         </div>
       </div>
     </div>

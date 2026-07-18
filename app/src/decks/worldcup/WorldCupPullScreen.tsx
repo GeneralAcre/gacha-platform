@@ -268,7 +268,7 @@ export function WorldCupPullScreen() {
         </div>
       )}
 
-        {detailMoment && <MomentDetailModal moment={detailMoment} onClose={() => setDetailMoment(null)} />}
+        {detailMoment && <MomentDetailModal moment={detailMoment} CardArt={CardArt} onClose={() => setDetailMoment(null)} />}
         {paymentPackOpen && selectedPack.art && (
           <PackPurchaseModal
             packArt={selectedPack.art}

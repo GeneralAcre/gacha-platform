@@ -45,15 +45,15 @@ export function Navbar({
 
   return (
     <header className="sticky top-0 z-30 border-b border-paper/10 bg-ink [padding-top:max(0.75rem,env(safe-area-inset-top))]">
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-4 py-3 md:px-6">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-2 px-4 py-3 md:px-6">
+        <div className="col-start-1 flex min-w-0 items-center gap-2">
           <button onClick={onHome} className="flex min-w-0 items-center gap-2 text-left [&>span]:hidden" aria-label="Return to Moment home">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-paper/20 text-flare">✦</span>
             <img src="/Moment-logo.png" alt="Moment" className="h-8 w-auto" />
           </button>
         </div>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="col-start-2 hidden items-center justify-center gap-1 md:flex">
           {[
             { label: 'Draw', onClick: onDraw },
             { label: 'Collection', onClick: onCollection },
@@ -66,7 +66,7 @@ export function Navbar({
           ))}
         </nav>
 
-        <div className="order-3 flex items-center gap-2 md:ml-auto md:shrink-0">
+        <div className="col-start-3 flex items-center justify-end gap-2">
           <div className="origin-right scale-90">
             <WalletMultiButton />
           </div>

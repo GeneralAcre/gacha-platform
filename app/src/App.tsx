@@ -3,9 +3,10 @@ import { WalletContextProvider } from './components/WalletContextProvider'
 import { AppShell } from './components/AppShell'
 import { LandingPage } from './components/LandingPage'
 import { PrivacyPolicyScreen, TermsOfUseScreen } from './components/PolicyScreen'
+import { FaqScreen } from './components/FaqScreen'
 import { PlatformHome } from './PlatformHome'
 
-type Screen = 'landing' | 'platform' | 'worldcup' | 'collection' | 'profile' | 'marketplace' | 'privacy' | 'terms'
+type Screen = 'landing' | 'worldcup' | 'collection' | 'profile' | 'marketplace' | 'faq' | 'privacy' | 'terms'
 
 const WorldCupPullScreen = lazy(() =>
   import('./decks/worldcup/WorldCupPullScreen').then(({ WorldCupPullScreen }) => ({ default: WorldCupPullScreen }))
@@ -23,8 +24,6 @@ function MomentApp() {
 
   const content = screen === 'landing'
     ? <LandingPage onDraw={() => setScreen('worldcup')} />
-    : screen === 'platform'
-    ? <PlatformHome onSelect={() => setScreen('worldcup')} />
     : screen === 'worldcup'
     ? <Suspense fallback={<LoadingScreen />}><WorldCupPullScreen /></Suspense>
     : screen === 'collection'
@@ -33,6 +32,8 @@ function MomentApp() {
     ? <Suspense fallback={<LoadingScreen />}><ProfileScreen /></Suspense>
     : screen === 'marketplace'
     ? <Suspense fallback={<LoadingScreen />}><MarketplaceScreen /></Suspense>
+    : screen === 'faq'
+    ? <FaqScreen />
     : screen === 'privacy'
     ? <PrivacyPolicyScreen />
     : screen === 'terms'
@@ -47,7 +48,7 @@ function MomentApp() {
       onCollection={() => setScreen('collection')}
       onProfile={() => setScreen('profile')}
       onMarketplace={() => setScreen('marketplace')}
-      onFaq={() => setScreen('platform')}
+      onFaq={() => setScreen('faq')}
       onPrivacy={() => setScreen('privacy')}
       onTerms={() => setScreen('terms')}
       showFooter={screen !== 'landing'}

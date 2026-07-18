@@ -194,7 +194,7 @@ export function WorldCupPullScreen() {
         <PackOddsPanel />
       </div>
 
-      <div className="mt-6 w-full max-w-4xl rounded-3xl border border-paper/10 bg-void p-5 shadow-[0_20px_50px_-24px_rgba(0,0,0,0.9)] md:p-8">
+      <div className="mt-6 w-full max-w-4xl">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed on devnet · real-time draw</p>
@@ -253,8 +253,8 @@ export function WorldCupPullScreen() {
         {recentMoments.length > 0 && (
           <div className="mt-6">
             <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">Trending Draws</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {recentMoments.slice(0, 8).map((m) => (
+            <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+              {recentMoments.slice(0, 12).map((m) => (
                 <MomentTile key={momentKey(m)} moment={m} CardArt={CardArt} onOpen={() => setDetailMoment(m)} />
               ))}
             </div>
@@ -289,7 +289,7 @@ function MomentTile({ moment, CardArt, onOpen }: { moment: MomentResult; CardArt
     <button
       type="button"
       onClick={onOpen}
-      className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#141414] p-3 text-left transition-transform hover:-translate-y-1"
+      className="flex w-36 shrink-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#141414] p-3 text-left transition-transform hover:-translate-y-1 sm:w-40"
     >
       <CardArt moment={moment} className="w-full rounded-xl" />
       <div className="mt-3 flex items-center justify-between gap-2">

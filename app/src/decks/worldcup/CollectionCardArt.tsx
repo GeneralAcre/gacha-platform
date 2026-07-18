@@ -1,10 +1,10 @@
 import { forwardRef, useId } from 'react'
 import type { CollectionEntry } from './momentsApi'
 
-// Only 2 backdrop photos exist for pull cards (see worldcup-card/): this is the "Match
-// Pack" one -- every collection draw (verified results + live odds) uses this art with
-// the real match data written on top of it, matching MomentCardArt.tsx's "Event Pack" art.
-const MATCH_ART = '/worldcup-card/Match-Pull-card.png'
+// Match-Pull-card.png is the pack-selector cover photo (see competitions.ts); the drawn
+// card itself uses Match-card.png as its backdrop, with the real match data written on
+// top of it, matching MomentCardArt.tsx's "Event Pack" drawn-card art.
+const MATCH_ART = '/worldcup-card/Match-card.png'
 
 // Round accent still varies the chip/text color for a bit of visual range across rounds,
 // even though the backdrop photo itself is now the same for every card.

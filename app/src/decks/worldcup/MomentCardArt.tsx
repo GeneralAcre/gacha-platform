@@ -9,10 +9,10 @@ import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
 // click-through detail modal, not on the card face (see MomentDetailModal.tsx).
 const FLIP_THEME = { tint: '#4a2f05', accent: '#ffd447' }
 const SWING_THEME = { tint: '#06331f', accent: '#8fe3b0' }
-// Only 2 backdrop photos exist for pull cards (see worldcup-card/): this is the "Event
-// Pack" one -- every Moment reveal (live odds-swing pulls) uses this art with the real
-// swing data written on top of it, matching CollectionCardArt.tsx's "Match Pack" art.
-const STADIUM_ART = '/worldcup-card/Event-Pull-card.png'
+// Event-Pull-card.png is the pack-selector cover photo (see competitions.ts); the drawn
+// card itself uses Event-card.png as its backdrop, with the real swing data written on
+// top of it, matching CollectionCardArt.tsx's "Match Pack" drawn-card art.
+const STADIUM_ART = '/worldcup-card/Event-card.png'
 
 // Rarity is graded from the swing itself (see momentRarity.ts), not the flip/swing kind --
 // the outer border weight is how "big a pull" this was, independent of what type it is.

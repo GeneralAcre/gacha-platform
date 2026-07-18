@@ -5,10 +5,13 @@ import { LandingPage } from './components/LandingPage'
 import { PrivacyPolicyScreen, TermsOfUseScreen } from './components/PolicyScreen'
 import { PlatformHome } from './PlatformHome'
 
-type Screen = 'landing' | 'platform' | 'worldcup' | 'profile' | 'marketplace' | 'privacy' | 'terms'
+type Screen = 'landing' | 'platform' | 'worldcup' | 'collection' | 'profile' | 'marketplace' | 'privacy' | 'terms'
 
 const WorldCupPullScreen = lazy(() =>
   import('./decks/worldcup/WorldCupPullScreen').then(({ WorldCupPullScreen }) => ({ default: WorldCupPullScreen }))
+)
+const CollectionScreen = lazy(() =>
+  import('./decks/worldcup/CollectionScreen').then(({ CollectionScreen }) => ({ default: CollectionScreen }))
 )
 const ProfileScreen = lazy(() => import('./components/ProfileScreen').then(({ ProfileScreen }) => ({ default: ProfileScreen })))
 const MarketplaceScreen = lazy(() =>
@@ -21,25 +24,27 @@ function MomentApp() {
   const content = screen === 'landing'
     ? <LandingPage onDraw={() => setScreen('worldcup')} />
     : screen === 'platform'
-      ? <PlatformHome onSelect={() => setScreen('worldcup')} />
-      : screen === 'worldcup'
-        ? <Suspense fallback={<LoadingScreen />}><WorldCupPullScreen /></Suspense>
-        : screen === 'profile'
-          ? <Suspense fallback={<LoadingScreen />}><ProfileScreen /></Suspense>
-          : screen === 'marketplace'
-            ? <Suspense fallback={<LoadingScreen />}><MarketplaceScreen /></Suspense>
-            : screen === 'privacy'
-              ? <PrivacyPolicyScreen />
-              : screen === 'terms'
-                ? <TermsOfUseScreen />
-                : <PlatformHome onSelect={() => setScreen('worldcup')} />
+    ? <PlatformHome onSelect={() => setScreen('worldcup')} />
+    : screen === 'worldcup'
+    ? <Suspense fallback={<LoadingScreen />}><WorldCupPullScreen /></Suspense>
+    : screen === 'collection'
+    ? <Suspense fallback={<LoadingScreen />}><CollectionScreen /></Suspense>
+    : screen === 'profile'
+    ? <Suspense fallback={<LoadingScreen />}><ProfileScreen /></Suspense>
+    : screen === 'marketplace'
+    ? <Suspense fallback={<LoadingScreen />}><MarketplaceScreen /></Suspense>
+    : screen === 'privacy'
+    ? <PrivacyPolicyScreen />
+    : screen === 'terms'
+    ? <TermsOfUseScreen />
+    : <PlatformHome onSelect={() => setScreen('worldcup')} />
 
   return (
     <AppShell
       lastDraw={null}
       onHome={() => setScreen('landing')}
       onDraw={() => setScreen('worldcup')}
-      onCollection={() => setScreen('profile')}
+      onCollection={() => setScreen('collection')}
       onProfile={() => setScreen('profile')}
       onMarketplace={() => setScreen('marketplace')}
       onFaq={() => setScreen('platform')}

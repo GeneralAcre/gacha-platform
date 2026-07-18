@@ -23,6 +23,7 @@ import axios, { AxiosInstance } from "axios";
 import nacl from "tweetnacl";
 import * as fs from "fs";
 import { config } from "./config";
+import { loadHouseKeypair } from "./sendMemoTx";
 import idl from "./idl/txoracle.json";
 
 // axios has no default request timeout, so a stalled connection to TxLINE would
@@ -34,12 +35,6 @@ export interface TxlineSession {
   apiToken: string;
   jwt: string;
   obtainedAt: number;
-}
-
-function loadKeypair(): Keypair {
-  const raw = fs.readFileSync(config.solanaKeypairPath, "utf8");
-  const secret = Uint8Array.from(JSON.parse(raw));
-  return Keypair.fromSecretKey(secret);
 }
 
 function readSessionCache(): TxlineSession | null {
@@ -163,7 +158,7 @@ export async function getSession(opts: { forceResubscribe?: boolean } = {}): Pro
   }
 
   const connection = new Connection(config.solanaRpcUrl, "confirmed");
-  const user = loadKeypair();
+  const user = loadHouseKeypair();
   const jwt = await fetchGuestJwt();
 
   console.log(`[txlineAuth] Subscribing on-chain: service level ${config.txlineServiceLevel}, ${config.txlineDurationWeeks} weeks...`);

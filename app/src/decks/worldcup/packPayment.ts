@@ -25,8 +25,16 @@ const MAX_PAYMENT_ATTEMPTS = 3
 
 /** Sends the pack-price SOL transfer to the house treasury and waits for confirmation.
  * Throws (with a message run through friendlyPayError by the caller) on any failure —
- * callers should treat a thrown error as "no pack was opened, no charge went through". */
-export async function payForPack(connection: Connection, wallet: WalletContextState): Promise<string> {
+ * callers should treat a thrown error as "no pack was opened, no charge went through".
+ * `onAttempt` fires right before each wallet prompt so the caller can tell the player a
+ * retry needs a fresh approval in their wallet — a silent second prompt is easy to miss,
+ * which otherwise looks like "I signed it and nothing happened" while the promise just
+ * hangs waiting for that unnoticed second approval. */
+export async function payForPack(
+  connection: Connection,
+  wallet: WalletContextState,
+  onAttempt?: (attempt: number, maxAttempts: number) => void
+): Promise<string> {
   if (!wallet.publicKey || !wallet.sendTransaction) {
     throw new Error('Connect your wallet to buy a pack.')
   }
@@ -34,6 +42,7 @@ export async function payForPack(connection: Connection, wallet: WalletContextSt
   let lastError: unknown
 
   for (let attempt = 1; attempt <= MAX_PAYMENT_ATTEMPTS; attempt++) {
+    onAttempt?.(attempt, MAX_PAYMENT_ATTEMPTS)
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
     const tx = new Transaction().add(
       SystemProgram.transfer({

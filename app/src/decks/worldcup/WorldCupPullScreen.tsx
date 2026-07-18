@@ -27,6 +27,7 @@ export function WorldCupPullScreen() {
   const [queue, setQueue] = useState<MomentResult[]>([])
   const [openedMoment, setOpenedMoment] = useState<MomentResult | null>(null)
   const [paying, setPaying] = useState(false)
+  const [payStatus, setPayStatus] = useState<string | null>(null)
   const [payError, setPayError] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
   const [detailMoment, setDetailMoment] = useState<MomentResult | null>(null)
@@ -77,10 +78,12 @@ export function WorldCupPullScreen() {
   }, [enqueueFresh, selectedPack.sourceCompetition])
 
   // Packs accumulate silently as real swings arrive — nothing reveals until the player
-  // actually pays to open one. Each open is its own payment, not a one-time unlock. Real
-  // live-match swings always take priority; only when none are queued (e.g. between
-  // matches, or for a demo) does opening a pack seal a fresh Moment on demand instead —
-  // same real memo-tx pipeline, just triggered by demand instead of a live odds swing.
+  // actually pays to open one. Each open is its own payment, not a one-time unlock.
+  // Payment happens first (so the wallet prompt appears immediately, not after several
+  // seconds of on-chain work the player never asked to wait for) and only once it's
+  // confirmed do we pick a Moment to reveal: whatever real live-match swing is already
+  // queued, or — since none is queued between matches, or for a demo — seal a fresh one
+  // on demand through the same real memo-tx pipeline.
   const handleOpenPack = useCallback(async () => {
     if (paying || openedMoment) return
     if (!wallet.publicKey || !wallet.sendTransaction) {
@@ -89,28 +92,60 @@ export function WorldCupPullScreen() {
     }
     setPayError(null)
     setPaying(true)
-
-    const fromQueue = queue.length > 0
-    let nextMoment: MomentResult
+    setPayStatus('Waiting for wallet approval...')
 
     try {
-      if (fromQueue) {
-        nextMoment = queue[0]
-      } else {
-        const simulated = await triggerSimulatedMoments()
-        const fresh = simulated.filter((m) => !seenRef.current.has(momentKey(m)))
-        fresh.forEach((m) => seenRef.current.add(momentKey(m)))
-        if (fresh.length === 0) throw new Error('No pack is available to open right now — try again in a moment.')
-        nextMoment = fresh[0]
-        if (fresh.length > 1) setQueue((q) => [...q, ...fresh.slice(1)])
-      }
-      await payForPack(connection, wallet)
+      await payForPack(connection, wallet, (attempt, max) => {
+        setPayStatus(
+          attempt === 1
+            ? 'Waiting for wallet approval...'
+            : `Devnet confirmation timed out — approve again in your wallet (attempt ${attempt}/${max})...`
+        )
+      })
     } catch (e: unknown) {
       setPayError(friendlyPayError(e))
       setPaying(false)
+      setPayStatus(null)
       return
     }
+
+    // Payment is confirmed on-chain from here on — the player has already been charged,
+    // so a failure past this point must never just vanish silently.
+    const fromQueue = queue.length > 0
+    let nextMoment: MomentResult
+
+    if (fromQueue) {
+      nextMoment = queue[0]
+    } else {
+      // The player has already paid for this pack — sealing must not have a dead end,
+      // so this retries on the spot (no further charge) rather than surfacing a failure
+      // that would make "Open Pack" look safe to click again when it would charge twice.
+      setPayStatus('Payment confirmed — sealing your card on-chain...')
+      const SEAL_ATTEMPTS = 3
+      let sealed: MomentResult | undefined
+      for (let attempt = 1; attempt <= SEAL_ATTEMPTS && !sealed; attempt++) {
+        try {
+          const simulated = await triggerSimulatedMoments()
+          const fresh = simulated.filter((m) => !seenRef.current.has(momentKey(m)))
+          fresh.forEach((m) => seenRef.current.add(momentKey(m)))
+          if (fresh.length === 0) continue
+          sealed = fresh[0]
+          if (fresh.length > 1) setQueue((q) => [...q, ...fresh.slice(1)])
+        } catch {
+          if (attempt < SEAL_ATTEMPTS) setPayStatus(`Payment confirmed — sealing your card on-chain (retry ${attempt + 1}/${SEAL_ATTEMPTS})...`)
+        }
+      }
+      if (!sealed) {
+        setPaying(false)
+        setPayStatus(null)
+        setPayError('Payment succeeded but sealing your card failed after retrying — the backend may be briefly unavailable. Please try again shortly; devnet SOL has no real value, so this only costs a small delay.')
+        return
+      }
+      nextMoment = sealed
+    }
+
     setPaying(false)
+    setPayStatus(null)
     setOpenedMoment(nextMoment)
     if (fromQueue) setQueue((q) => q.slice(1))
   }, [queue, paying, openedMoment, wallet, connection])
@@ -187,8 +222,11 @@ export function WorldCupPullScreen() {
                   disabled={paying}
                   className="mt-2 rounded-full bg-[#ffd447] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-50"
                 >
-                  {paying ? 'Confirming payment...' : `Open Pack — ${PACK_PRICE_SOL} SOL`}
+                  {paying ? 'Processing...' : `Open Pack — ${PACK_PRICE_SOL} SOL`}
                 </button>
+                {paying && payStatus && (
+                  <p className="max-w-xs text-center text-[11px] font-bold text-[#ffd447]">{payStatus}</p>
+                )}
                 {!wallet.publicKey && (
                   <p className="text-[11px] font-bold uppercase tracking-widest text-white/30">Connect your wallet above to open a pack</p>
                 )}

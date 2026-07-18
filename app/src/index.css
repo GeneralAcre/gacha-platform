@@ -152,6 +152,18 @@ textarea {
   color: #0a0a0a !important;
 }
 
+/* .wallet-adapter-modal above only covers the full-screen positioning layer -- the
+   actual visible card is .wallet-adapter-modal-wrapper, which the vendor CSS defaults
+   to a dark navy background (#10141f) that was never overridden here, so the modal
+   rendered dark with near-black title text on top of it -- unreadable. This is the
+   element that actually needs the white popup treatment. */
+.wallet-adapter-modal-wrapper {
+  background-color: #ffffff !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 50px -12px rgba(10, 10, 10, 0.25) !important;
+  color: #0a0a0a !important;
+}
+
 .wallet-adapter-modal-title {
   color: #0a0a0a !important;
   font-weight: 800 !important;

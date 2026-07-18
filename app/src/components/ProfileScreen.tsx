@@ -12,6 +12,7 @@ import {
   listingPda,
   ataPda,
 } from '../decks/marketplace/marketplaceApi'
+import { OwnedMomentArt } from '../decks/marketplace/OwnedMomentArt'
 import { MOMENT_RARITY_STYLE, type MomentRarity } from '../decks/worldcup/momentRarity'
 
 type AnchorWallet = ConstructorParameters<typeof AnchorProvider>[1]
@@ -45,6 +46,10 @@ interface MyListing {
   listingPda: web3.PublicKey
   mint: web3.PublicKey
   priceLamports: number
+  fixtureId: number
+  momentKind: number
+  rarity: number
+  deltaBps: number
 }
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -134,11 +139,27 @@ export function ProfileScreen() {
       }).listing
       const rawListings = await listingAccounts.all([{ memcmp: { offset: 8, bytes: walletPublicKey.toBase58() } }])
       const listingMomentInfos = await connection.getMultipleAccountsInfo(rawListings.map(({ account }) => momentRecordPda(account.mint)))
-      const listings: MyListing[] = rawListings.flatMap(({ publicKey, account }, index) => listingMomentInfos[index] ? [{
-        listingPda: publicKey,
-        mint: account.mint,
-        priceLamports: typeof account.price === 'number' ? account.price : Number(account.price.toString()),
-      }] : [])
+      const listings: MyListing[] = rawListings.flatMap(({ publicKey, account }, index) => {
+        const momentInfo = listingMomentInfos[index]
+        if (!momentInfo) return []
+        try {
+          const record = baseProgram.coder.accounts.decode<{ fixtureId: number; kind: number; rarity: number; deltaBps: number }>(
+            'momentRecord',
+            momentInfo.data
+          )
+          return [{
+            listingPda: publicKey,
+            mint: account.mint,
+            priceLamports: typeof account.price === 'number' ? account.price : Number(account.price.toString()),
+            fixtureId: record.fixtureId,
+            momentKind: record.kind,
+            rarity: record.rarity,
+            deltaBps: record.deltaBps,
+          }]
+        } catch {
+          return []
+        }
+      })
 
       setOwned(foundItems)
       setMyListings(listings)
@@ -265,9 +286,18 @@ export function ProfileScreen() {
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {myListings.map((listing) => (
                   <div key={listing.listingPda.toBase58()} className="flex items-center justify-between gap-3 rounded-2xl border border-flare/25 bg-flare/5 p-4">
-                    <div className="min-w-0">
-                      <p className="truncate font-mono text-[10px] text-ink/45">{listing.mint.toBase58().slice(0, 10)}…</p>
-                      <p className="font-black text-ink">{(listing.priceLamports / web3.LAMPORTS_PER_SOL).toFixed(3)} SOL</p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <OwnedMomentArt
+                        momentKind={listing.momentKind}
+                        rarity={listing.rarity}
+                        deltaBps={listing.deltaBps}
+                        fixtureId={listing.fixtureId}
+                        className="h-20 w-14 shrink-0 rounded-lg border border-ink/10 bg-ink object-cover"
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-ink/45">Fixture #{listing.fixtureId}</p>
+                        <p className="font-black text-ink">{(listing.priceLamports / web3.LAMPORTS_PER_SOL).toFixed(3)} SOL</p>
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -319,23 +349,32 @@ export function ProfileScreen() {
                         </div>
                       </div>
                     ) : (
-                      <div>
-                        <span
-                          className="text-[10px] font-bold uppercase tracking-widest"
-                          style={{ color: MOMENT_RARITY_STYLE[MOMENT_RARITY_BY_BYTE[item.rarity] ?? 'common'].accent }}
-                        >
-                          {MOMENT_RARITY_STYLE[MOMENT_RARITY_BY_BYTE[item.rarity] ?? 'common'].label} · {item.momentKind === 1 ? 'Favorite Flip' : 'Odds Swing'}
-                        </span>
-                        <div className="mt-2 font-black tracking-tight text-ink">Fixture #{item.fixtureId}</div>
-                        <p className="mt-1 text-xs text-ink/65">{Math.round(item.deltaBps / 100)} point swing</p>
-                        <a
-                          href={`https://explorer.solana.com/address/${mintKey}?cluster=devnet`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-2 inline-block text-[10px] font-bold uppercase tracking-widest text-ink/35"
-                        >
-                          View on Explorer ↗
-                        </a>
+                      <div className="flex gap-4">
+                        <OwnedMomentArt
+                          momentKind={item.momentKind}
+                          rarity={item.rarity}
+                          deltaBps={item.deltaBps}
+                          fixtureId={item.fixtureId}
+                          className="h-36 w-24 shrink-0 rounded-xl border border-ink/10 bg-ink object-cover"
+                        />
+                        <div className="min-w-0">
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-widest"
+                            style={{ color: MOMENT_RARITY_STYLE[MOMENT_RARITY_BY_BYTE[item.rarity] ?? 'common'].accent }}
+                          >
+                            {MOMENT_RARITY_STYLE[MOMENT_RARITY_BY_BYTE[item.rarity] ?? 'common'].label} · {item.momentKind === 1 ? 'Favorite Flip' : 'Odds Swing'}
+                          </span>
+                          <div className="mt-2 font-black tracking-tight text-ink">Fixture #{item.fixtureId}</div>
+                          <p className="mt-1 text-xs text-ink/65">{Math.round(item.deltaBps / 100)} point swing</p>
+                          <a
+                            href={`https://explorer.solana.com/address/${mintKey}?cluster=devnet`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-block text-[10px] font-bold uppercase tracking-widest text-ink/35"
+                          >
+                            View on Explorer ↗
+                          </a>
+                        </div>
                       </div>
                     )}
 

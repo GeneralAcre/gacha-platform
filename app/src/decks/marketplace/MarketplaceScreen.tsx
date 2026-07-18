@@ -11,11 +11,9 @@ import {
   type MarketListing,
   type MomentListing,
 } from './marketplaceApi'
-import { MOMENT_RARITY_STYLE, type MomentRarity } from '../worldcup/momentRarity'
+import { OwnedMomentArt } from './OwnedMomentArt'
 
 type AnchorWallet = ConstructorParameters<typeof AnchorProvider>[1]
-
-const MOMENT_RARITY_BY_BYTE: MomentRarity[] = ['common', 'rare', 'legendary']
 
 function formatSol(lamports: number): string {
   return (lamports / web3.LAMPORTS_PER_SOL).toFixed(3)
@@ -30,31 +28,14 @@ function truncate(pubkey: web3.PublicKey): string {
  * no team names or narrative, since those live only in the backend's ephemeral off-chain
  * feed. This tile shows exactly what the mint can honestly prove, not a reconstruction. */
 function MomentListingArt({ listing }: { listing: MomentListing }) {
-  const rarity = MOMENT_RARITY_BY_BYTE[listing.rarity] ?? 'common'
-  const style = MOMENT_RARITY_STYLE[rarity]
-  const isFlip = listing.momentKind === 1
-  const deltaPoints = Math.round(listing.deltaBps / 100)
-  const isUp = deltaPoints >= 0
-
   return (
-    <div className="relative flex h-48 w-full flex-col justify-between rounded-lg border border-white/10 bg-[#0d0d14] p-3">
-      <div className="flex items-center justify-between">
-        <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-ink">
-          {isFlip ? 'Flip' : 'Swing'}
-        </span>
-        <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${style.badge}`}>{style.label}</span>
-      </div>
-      <div className="text-center">
-        <div className="text-3xl font-black text-white">
-          {isUp ? '↑' : '↓'}
-          {Math.abs(deltaPoints)}
-        </div>
-        <p className="mt-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: style.accent }}>
-          Point swing
-        </p>
-      </div>
-      <p className="text-center text-[9px] font-bold uppercase tracking-widest text-white/40">Fixture #{listing.fixtureId}</p>
-    </div>
+    <OwnedMomentArt
+      momentKind={listing.momentKind}
+      rarity={listing.rarity}
+      deltaBps={listing.deltaBps}
+      fixtureId={listing.fixtureId}
+      className="h-48 w-full rounded-lg border border-white/10 object-cover"
+    />
   )
 }
 

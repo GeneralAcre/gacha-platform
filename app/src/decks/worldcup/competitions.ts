@@ -14,7 +14,7 @@ export interface CompetitionInfo {
 export const COMPETITIONS: CompetitionInfo[] = [
   { id: 'event', label: 'Event Pack', live: true, art: '/worldcup-card/Event-Pull-card.png', sourceCompetition: 'World Cup' },
   { id: 'match', label: 'Match Pack', live: true, art: '/worldcup-card/Match-Pull-card.png', sourceCompetition: 'World Cup' },
-  { id: 'player', label: 'Player Pack', live: false, sourceCompetition: 'World Cup' },
+  { id: 'player', label: 'Player Pack', live: false, art: '/worldcup-card/Player-Pull-card.png', sourceCompetition: 'World Cup' },
   { id: 'mixed', label: 'Mixed Pack', live: false, sourceCompetition: 'World Cup' },
 ]
 

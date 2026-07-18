@@ -1,12 +1,12 @@
 import { COMPETITIONS } from './competitions'
 import { PACK_PRICE_SOL } from './packPayment'
 
-// Real pack art is native portrait photography (roughly 1:2), full native size on a
-// couple-hundred-px-wide grid cell that would render 700px+ tall -- capping max-width
-// (not height) keeps every pack's full artwork visible with nothing cropped, just scaled
-// down together with its proportional height. Same cap at every breakpoint so mobile
+// Every pack's art is a slightly different native ratio (0.60-0.67), so letting each tile
+// size to its own image's aspect ratio left them at mismatched heights in the same row --
+// a fixed 2:3 box (object-cover) makes every tile, art or placeholder, exactly the same
+// size regardless of source image proportions. Same cap at every breakpoint so mobile
 // doesn't end up with an oversized column relative to the viewport.
-const ART_MAX_WIDTH = 'max-w-[132px] sm:max-w-[152px] md:max-w-[168px]'
+const ART_MAX_WIDTH = 'max-w-[160px] sm:max-w-[190px] md:max-w-[210px]'
 
 export function CompetitionPackSelector({ selected, onPackClick }: { selected: string; onPackClick: (id: string) => void }) {
   return (
@@ -37,11 +37,11 @@ export function CompetitionPackSelector({ selected, onPackClick }: { selected: s
                 </span>
               )}
               {comp.art ? (
-                <img
-                  src={comp.art}
-                  alt={`${comp.label} artwork`}
-                  className={`block h-auto w-full ${ART_MAX_WIDTH} rounded-2xl shadow-[0_16px_32px_-20px_rgba(0,0,0,0.9)] transition-shadow ${isSelected ? 'ring-2 ring-[#8fe3b0] ring-offset-2 ring-offset-ink' : 'group-hover:shadow-[0_16px_32px_-12px_rgba(143,227,176,0.35)]'}`}
-                />
+                <div
+                  className={`aspect-[2/3] w-full ${ART_MAX_WIDTH} overflow-hidden rounded-2xl shadow-[0_16px_32px_-20px_rgba(0,0,0,0.9)] transition-shadow ${isSelected ? 'ring-2 ring-[#8fe3b0] ring-offset-2 ring-offset-ink' : 'group-hover:shadow-[0_16px_32px_-12px_rgba(143,227,176,0.35)]'}`}
+                >
+                  <img src={comp.art} alt={`${comp.label} artwork`} className="h-full w-full object-cover" />
+                </div>
               ) : (
                 <div
                   className={`flex aspect-[2/3] w-full ${ART_MAX_WIDTH} flex-col items-center justify-center rounded-2xl border border-dashed border-paper/15 bg-paper/[0.03] px-2 text-center transition-shadow ${isSelected ? 'ring-2 ring-[#8fe3b0] ring-offset-2 ring-offset-ink' : ''}`}

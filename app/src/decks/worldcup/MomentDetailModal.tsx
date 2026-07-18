@@ -96,7 +96,7 @@ export function MomentDetailModal({ moment, onClose }: { moment: MomentResult; o
             >
               View on Solana Explorer ↗
             </a>
-            <MomentClaimButton moment={moment} />
+            <MomentClaimButton moment={moment} showSellControls />
           </div>
         </div>
       </div>

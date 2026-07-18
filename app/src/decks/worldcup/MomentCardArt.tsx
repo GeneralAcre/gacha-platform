@@ -7,8 +7,11 @@ import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
 // "glass" panel so it stays readable over the photo, a clean name bar at the bottom.
 // Deliberately minimal -- narrative/fixture-id/from-to percentages live in the
 // click-through detail modal, not on the card face (see MomentDetailModal.tsx).
-const FLIP_THEME = { tint: '#4a2f05', accent: '#ffd447' }
-const SWING_THEME = { tint: '#06331f', accent: '#8fe3b0' }
+// A flip (crosses 50%, favorite changes) reads as the bigger, more disruptive event --
+// a red card. A swing that doesn't flip the favorite is the smaller caution -- a yellow
+// card. Same soccer-card colors carry through the tint, hero panel, and card title below.
+const FLIP_THEME = { tint: '#4a0505', accent: '#ff5c5c' }
+const SWING_THEME = { tint: '#4a3505', accent: '#ffd447' }
 // Event-Pull-card.png is the pack-selector cover photo (see competitions.ts); the drawn
 // card itself uses Event-card.png as its backdrop, with the real swing data written on
 // top of it, matching CollectionCardArt.tsx's "Match Pack" drawn-card art.
@@ -77,9 +80,12 @@ export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; c
             POINT SWING{moment.matchMinute !== undefined ? ` · ${moment.matchMinute}'` : ''}
           </text>
 
-          {/* name bar: both teams on one row, one color -- avoids the mismatched two-tone/two-line look */}
+          {/* name bar: card-type title (why the chance dropped), match name underneath */}
           <rect x="0" y="108" width="100" height="32" fill="#000000a8" />
-          <text x="50" y="127" fill="#ffffff" fontSize="5.6" fontWeight="900" textAnchor="middle" fontFamily="Arial, sans-serif">
+          <text x="50" y="122" fill={theme.accent} fontSize="6.4" fontWeight="900" textAnchor="middle" letterSpacing="0.4" fontFamily="Arial, sans-serif">
+            {isFlip ? 'RED CARD' : 'YELLOW CARD'}
+          </text>
+          <text x="50" y="133" fill="#ffffff" fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
             {moment.team} vs {moment.opponent}
           </text>
         </g>

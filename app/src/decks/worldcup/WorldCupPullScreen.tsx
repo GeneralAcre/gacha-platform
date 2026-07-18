@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { fetchRecentMoments, explorerTxUrl, momentKey, type MomentResult } from './momentsApi'
+import { fetchRecentMoments, triggerSimulatedMoments, explorerTxUrl, momentKey, type MomentResult } from './momentsApi'
 import { MomentCardArt, MomentShareButtons, useMomentCardDownload } from './MomentCardArt'
 import { MomentReel } from './MomentReel'
 import { MomentClaimButton } from './MomentClaimButton'
@@ -77,16 +77,33 @@ export function WorldCupPullScreen() {
   }, [enqueueFresh, selectedPack.sourceCompetition])
 
   // Packs accumulate silently as real swings arrive — nothing reveals until the player
-  // actually pays to open one. Each open is its own payment, not a one-time unlock.
+  // actually pays to open one. Each open is its own payment, not a one-time unlock. Real
+  // live-match swings always take priority; only when none are queued (e.g. between
+  // matches, or for a demo) does opening a pack seal a fresh Moment on demand instead —
+  // same real memo-tx pipeline, just triggered by demand instead of a live odds swing.
   const handleOpenPack = useCallback(async () => {
-    if (queue.length === 0 || paying || openedMoment) return
+    if (paying || openedMoment) return
     if (!wallet.publicKey || !wallet.sendTransaction) {
       setPayError('Connect your wallet to open a pack.')
       return
     }
     setPayError(null)
     setPaying(true)
+
+    const fromQueue = queue.length > 0
+    let nextMoment: MomentResult
+
     try {
+      if (fromQueue) {
+        nextMoment = queue[0]
+      } else {
+        const simulated = await triggerSimulatedMoments()
+        const fresh = simulated.filter((m) => !seenRef.current.has(momentKey(m)))
+        fresh.forEach((m) => seenRef.current.add(momentKey(m)))
+        if (fresh.length === 0) throw new Error('No pack is available to open right now — try again in a moment.')
+        nextMoment = fresh[0]
+        if (fresh.length > 1) setQueue((q) => [...q, ...fresh.slice(1)])
+      }
       await payForPack(connection, wallet)
     } catch (e: unknown) {
       setPayError(friendlyPayError(e))
@@ -94,8 +111,8 @@ export function WorldCupPullScreen() {
       return
     }
     setPaying(false)
-    setOpenedMoment(queue[0])
-    setQueue((q) => q.slice(1))
+    setOpenedMoment(nextMoment)
+    if (fromQueue) setQueue((q) => q.slice(1))
   }, [queue, paying, openedMoment, wallet, connection])
 
   const handleDismiss = useCallback(() => setOpenedMoment(null), [])
@@ -113,10 +130,10 @@ export function WorldCupPullScreen() {
   }, [])
 
   const handleEventPayment = useCallback(() => {
-    if (queue.length === 0 || paying || openedMoment) return
+    if (paying || openedMoment) return
     setEventPaymentOpen(false)
     void handleOpenPack()
-  }, [handleOpenPack, openedMoment, paying, queue.length])
+  }, [handleOpenPack, openedMoment, paying])
 
   return (
     <div className="w-full bg-ink text-paper">
@@ -155,13 +172,15 @@ export function WorldCupPullScreen() {
           <div className="mt-6 flex w-full flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-6">
             {openedMoment ? (
               <MomentReveal moment={openedMoment} queueCount={queue.length} onDismiss={handleDismiss} />
-            ) : queue.length > 0 ? (
+            ) : (
               <div className="flex flex-col items-center gap-3 py-6">
                 <p className="text-sm font-bold uppercase tracking-widest text-white/80">
-                  {queue.length} sealed pack{queue.length > 1 ? 's' : ''} ready
+                  {queue.length > 0 ? `${queue.length} sealed pack${queue.length > 1 ? 's' : ''} ready` : 'Ready to open a pack'}
                 </p>
                 <p className="max-w-xs text-center text-xs text-white/40">
-                  A real odds swing was just detected in a live match. Pay to open the pack and reveal the Moment card.
+                  {queue.length > 0
+                    ? 'A real odds swing was just detected in a live match. Pay to open the pack and reveal the Moment card.'
+                    : 'Pay to seal and open a fresh pack right now.'}
                 </p>
                 <button
                   onClick={handleOpenPack}
@@ -178,11 +197,6 @@ export function WorldCupPullScreen() {
                     {payError}
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3 py-6">
-                <p className="text-sm font-bold uppercase tracking-widest text-white/80">Waiting for the next swing...</p>
-                <p className="text-xs text-white/40">This screen polls the Moments API every few seconds.</p>
               </div>
             )}
           </div>
@@ -208,10 +222,9 @@ export function WorldCupPullScreen() {
               <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.28em] text-[#8fe3b0]">Event Pack</p>
               <h2 id="event-pack-title" className="mt-2 text-2xl font-black text-paper">Ready to draw?</h2>
               <p className="mt-3 text-sm leading-6 text-paper/60">Pay {PACK_PRICE_SOL.toFixed(2)} devnet SOL to open your Event Pack and reveal a sealed match moment.</p>
-              {queue.length === 0 && <p className="mt-3 text-xs text-paper/45">Waiting for the next event pack to become available.</p>}
               <div className="mt-6 flex gap-3">
                 <button type="button" onClick={() => setEventPaymentOpen(false)} className="flex-1 rounded-full border border-paper/20 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-paper transition-colors hover:bg-paper/10">Cancel</button>
-                <button type="button" onClick={handleEventPayment} disabled={queue.length === 0 || paying} className="flex-1 rounded-full bg-[#8fe3b0] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-ink transition-colors hover:bg-[#b1f2cb] disabled:cursor-not-allowed disabled:opacity-40">{paying ? 'Confirming...' : `Pay ${PACK_PRICE_SOL.toFixed(2)} SOL`}</button>
+                <button type="button" onClick={handleEventPayment} disabled={paying} className="flex-1 rounded-full bg-[#8fe3b0] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-ink transition-colors hover:bg-[#b1f2cb] disabled:cursor-not-allowed disabled:opacity-40">{paying ? 'Confirming...' : `Pay ${PACK_PRICE_SOL.toFixed(2)} SOL`}</button>
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { fetchCollection, type CollectionEntry, type MomentResult } from './mome
 import { CollectionCardArt } from './CollectionCardArt'
 import { CollectionDetailModal } from './CollectionDetailModal'
 import { PACK_PRICE_SOL, payForPack, friendlyPayError } from './packPayment'
+import { PackPurchaseModal } from './PackPurchaseModal'
 
 const COLLECTION_POLL_INTERVAL_MS = 15000
 const ROUND_ORDER = ['Round of 32', 'Round of 16', 'Quarterfinal', 'Semifinal', 'Third Place', 'Final']
@@ -49,6 +50,7 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
   const [drawing, setDrawing] = useState(false)
   const [paying, setPaying] = useState(false)
   const [payError, setPayError] = useState<string | null>(null)
+  const [drawModalOpen, setDrawModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -123,6 +125,14 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
     }, 700)
   }, [collection, drawing, paying, wallet, connection])
 
+  // Modal closes immediately on confirm (before payment resolves), same as the Event Pack
+  // flow -- otherwise a failed payment's error message would render behind the still-open
+  // modal overlay instead of in the visible inline panel underneath.
+  const handleDrawConfirm = useCallback(() => {
+    setDrawModalOpen(false)
+    void handleDraw()
+  }, [handleDraw])
+
   return (
     <div className="w-full max-w-4xl rounded-3xl bg-[#0a0a0a] p-5 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -171,7 +181,7 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
                   View Details
                 </button>
                 <button
-                  onClick={handleDraw}
+                  onClick={() => setDrawModalOpen(true)}
                   disabled={drawing || paying}
                   className="rounded-full border border-white/20 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white/70 transition-colors hover:border-white hover:text-white disabled:opacity-50"
                 >
@@ -187,7 +197,7 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
               Pull a random match from the full World Cup 2026 knockout collection — {PACK_PRICE_SOL} SOL per pack, paid on devnet.
             </p>
             <button
-              onClick={handleDraw}
+              onClick={() => setDrawModalOpen(true)}
               disabled={loading || collection.length === 0 || drawing || paying}
               className="mt-2 rounded-full bg-[#ffd447] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-50"
             >
@@ -231,6 +241,16 @@ export function MatchCollection({ recentMoments }: { recentMoments: MomentResult
 
       {detailEntry && (
         <CollectionDetailModal entry={detailEntry} moments={momentsFor(detailEntry)} onClose={() => setDetailEntry(null)} />
+      )}
+
+      {drawModalOpen && (
+        <PackPurchaseModal
+          packArt="/worldcup-card/Match-Pull-card.png"
+          packLabel="Match Pack"
+          paying={paying}
+          onCancel={() => setDrawModalOpen(false)}
+          onConfirm={handleDrawConfirm}
+        />
       )}
     </div>
   )

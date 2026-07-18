@@ -12,6 +12,7 @@ import { PackOddsPanel } from './PackOddsPanel'
 import { COMPETITIONS, DEFAULT_COMPETITION } from './competitions'
 import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
 import { PACK_PRICE_SOL, payForPack, friendlyPayError } from './packPayment'
+import { PackPurchaseModal } from './PackPurchaseModal'
 
 const POLL_INTERVAL_MS = 3000
 
@@ -259,18 +260,13 @@ export function WorldCupPullScreen() {
 
         {detailMoment && <MomentDetailModal moment={detailMoment} onClose={() => setDetailMoment(null)} />}
         {eventPaymentOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="event-pack-title">
-            <div className="w-full max-w-sm rounded-3xl border border-paper/15 bg-void p-6 text-center shadow-2xl">
-              <img src="/worldcup-card/Event-Pull-card.png" alt="Event Pack" className="mx-auto h-36 w-28 rounded-xl bg-black object-contain shadow-lg" />
-              <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.28em] text-[#8fe3b0]">Event Pack</p>
-              <h2 id="event-pack-title" className="mt-2 text-2xl font-black text-paper">Ready to draw?</h2>
-              <p className="mt-3 text-sm leading-6 text-paper/60">Pay {PACK_PRICE_SOL.toFixed(2)} devnet SOL to open your Event Pack and reveal a sealed match moment.</p>
-              <div className="mt-6 flex gap-3">
-                <button type="button" onClick={() => setEventPaymentOpen(false)} className="flex-1 rounded-full border border-paper/20 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-paper transition-colors hover:bg-paper/10">Cancel</button>
-                <button type="button" onClick={handleEventPayment} disabled={paying} className="flex-1 rounded-full bg-[#8fe3b0] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-ink transition-colors hover:bg-[#b1f2cb] disabled:cursor-not-allowed disabled:opacity-40">{paying ? 'Confirming...' : `Pay ${PACK_PRICE_SOL.toFixed(2)} SOL`}</button>
-              </div>
-            </div>
-          </div>
+          <PackPurchaseModal
+            packArt="/worldcup-card/Event-Pull-card.png"
+            packLabel="Event Pack"
+            paying={paying}
+            onCancel={() => setEventPaymentOpen(false)}
+            onConfirm={handleEventPayment}
+          />
         )}
       </div>
     </div>

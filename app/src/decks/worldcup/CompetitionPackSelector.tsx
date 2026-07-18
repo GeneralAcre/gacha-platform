@@ -14,7 +14,7 @@ export function CompetitionPackSelector({ selected, onPackClick }: { selected: s
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#8fe3b0]">Choose your pack</p>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-paper md:text-3xl">Open a match moment</h1>
+          <h1 className="font-koulen mt-1 text-2xl tracking-tight text-paper md:text-3xl">Open a match moment</h1>
         </div>
         <p className="rounded-full border border-paper/15 bg-paper/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-paper/60">{PACK_PRICE_SOL.toFixed(2)} devnet SOL / pack</p>
       </div>

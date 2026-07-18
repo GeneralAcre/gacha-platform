@@ -90,7 +90,7 @@ export function FaqScreen() {
       <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 md:py-14">
       <div className="border-b border-white/10 pb-5">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">Questions</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-white md:text-5xl">FAQ</h1>
+        <h1 className="font-koulen mt-2 text-4xl tracking-tight text-white md:text-5xl">FAQ</h1>
         <p className="mt-2 text-sm text-white/55">Common questions about how Moment actually works.</p>
       </div>
 

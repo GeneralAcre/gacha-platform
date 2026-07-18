@@ -254,7 +254,7 @@ export function ProfileScreen() {
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">Player profile</p>
-          <h1 className="mt-2 text-4xl font-black tracking-tight text-white md:text-5xl">My collection</h1>
+          <h1 className="font-koulen mt-2 text-4xl tracking-tight text-white md:text-5xl">My collection</h1>
           {walletAddress ? (
             <p className="mt-2 font-mono text-xs text-white/55">
               Connected · {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}

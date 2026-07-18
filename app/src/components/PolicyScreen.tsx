@@ -9,7 +9,7 @@ function PolicyScreen({ kicker, title, updated, sections }: { kicker: string; ti
       <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 md:py-14">
       <div className="border-b border-white/10 pb-5">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">{kicker}</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-white md:text-5xl">{title}</h1>
+        <h1 className="font-koulen mt-2 text-4xl tracking-tight text-white md:text-5xl">{title}</h1>
         <p className="mt-2 text-xs font-bold uppercase tracking-widest text-white/40">Last updated {updated}</p>
       </div>
 

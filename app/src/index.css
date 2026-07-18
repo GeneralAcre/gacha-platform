@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Koulen&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -21,6 +21,14 @@
 
 .font-kdam {
   font-family: 'Inter', sans-serif;
+}
+
+/* Page-title display face — used on the h1 of every screen (see index.css usage in
+   LandingPage, CompetitionPackSelector, CollectionScreen, ProfileScreen, MarketplaceScreen,
+   FaqScreen, PolicyScreen). Koulen only ships one weight, so font-weight utilities on these
+   titles have no visual effect -- that's expected, the face is already this bold by design. */
+.font-koulen {
+  font-family: 'Koulen', sans-serif;
 }
 
 /* Shared frosted-glass treatment for consumer-facing panels. */

@@ -141,7 +141,7 @@ export function MarketplaceScreen() {
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-white/50">Peer-to-peer · on-chain escrow</p>
-          <h1 className="mt-2 text-3xl font-black leading-none tracking-tight text-white md:text-5xl">Marketplace</h1>
+          <h1 className="font-koulen mt-2 text-3xl leading-none tracking-tight text-white md:text-5xl">Marketplace</h1>
         </div>
         <button
           type="button"

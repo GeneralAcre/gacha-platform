@@ -87,7 +87,7 @@ export function CollectionScreen() {
     <div className="w-full flex-1 bg-ink text-paper">
       <div className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Verified results + real-time TxLINE odds</p>
-        <h1 className="mt-1 text-3xl font-black tracking-tight text-white md:text-4xl">World Cup 2026 Collection</h1>
+        <h1 className="font-koulen mt-1 text-3xl tracking-tight text-white md:text-4xl">World Cup 2026 Collection</h1>
         <p className="mt-2 max-w-xl text-sm text-white/50">
           Every knockout match on the site, whether you've drawn it or not — verified results and matches TxLINE is tracking live.
         </p>

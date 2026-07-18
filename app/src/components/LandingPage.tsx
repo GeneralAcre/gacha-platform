@@ -26,12 +26,12 @@ export function LandingPage({ onDraw }: { onDraw: () => void }) {
         </div>
         <div className="relative z-10 mx-auto w-full max-w-2xl text-center text-paper">
           <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#8fe3b0] sm:text-xs">Every moment matters</p>
-          <h1 className="mt-4 text-4xl font-black uppercase leading-[0.95] tracking-tight sm:text-5xl md:text-6xl">Capture the moments that move the match.</h1>
+          <h1 className="font-koulen mt-4 text-4xl uppercase leading-[0.95] tracking-tight sm:text-5xl md:text-6xl">Capture the moments that move the match.</h1>
           <p className="mx-auto mt-5 max-w-lg text-sm font-medium leading-relaxed text-paper/85 sm:text-base lg:text-lg">Draw collectible match moments, then keep the plays you will never forget.</p>
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-4 pb-14 pt-2 md:px-6 md:pb-20">
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 md:px-6 md:py-16">
         <div className="grid gap-8 sm:grid-cols-3">
           {FEATURES.map((feature) => (
             <div key={feature.title} className="flex flex-col items-start gap-3">

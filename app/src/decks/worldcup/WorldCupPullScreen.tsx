@@ -6,7 +6,6 @@ import { MatchMomentCardArt } from './MatchMomentCardArt'
 import { MomentReel } from './MomentReel'
 import { MomentClaimButton } from './MomentClaimButton'
 import { MomentDetailModal } from './MomentDetailModal'
-import { MatchCollection } from './MatchCollection'
 import { LiveMatchTicker } from './LiveMatchTicker'
 import { CompetitionPackSelector } from './CompetitionPackSelector'
 import { PackOddsPanel } from './PackOddsPanel'
@@ -261,12 +260,6 @@ export function WorldCupPullScreen() {
           </div>
         )}
       </div>
-
-      {selectedPack.showCollectionGrid && (
-        <div className="mt-6 flex w-full justify-center">
-          <MatchCollection recentMoments={recentMoments} />
-        </div>
-      )}
 
         {detailMoment && <MomentDetailModal moment={detailMoment} CardArt={CardArt} onClose={() => setDetailMoment(null)} />}
         {paymentPackOpen && selectedPack.art && (

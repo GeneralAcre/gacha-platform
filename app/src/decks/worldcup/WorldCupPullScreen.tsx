@@ -95,13 +95,18 @@ export function WorldCupPullScreen() {
     setPayStatus('Waiting for wallet approval...')
 
     try {
-      await payForPack(connection, wallet, (attempt, max) => {
-        setPayStatus(
-          attempt === 1
-            ? 'Waiting for wallet approval...'
-            : `Devnet confirmation timed out — approve again in your wallet (attempt ${attempt}/${max})...`
-        )
-      })
+      await payForPack(
+        connection,
+        wallet,
+        (attempt, max) => {
+          setPayStatus(
+            attempt === 1
+              ? 'Waiting for wallet approval...'
+              : `Blockhash expired before confirming — approve again in your wallet (attempt ${attempt}/${max})...`
+          )
+        },
+        () => setPayStatus('Approved — confirming on devnet...')
+      )
     } catch (e: unknown) {
       setPayError(friendlyPayError(e))
       setPaying(false)

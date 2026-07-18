@@ -22,24 +22,52 @@ export function friendlyPayError(e: unknown): string {
 }
 
 const MAX_PAYMENT_ATTEMPTS = 3
+const POLL_INTERVAL_MS = 1500
+
+/** Polls a sent transaction's own status directly via HTTP instead of
+ * `connection.confirmTransaction`'s websocket-based signature subscription — the public
+ * devnet RPC's subscription can miss the notification and throw a false "expired" well
+ * before the blockhash is actually unusable, which was forcing a needless second wallet
+ * prompt on transactions that would have landed fine with a few more seconds. This keeps
+ * checking for as long as the blockhash that was actually signed remains genuinely valid
+ * (compared against the real current block height, not a client-side timer), so a signed
+ * transaction gets every real chance to land before anything asks for a new signature. */
+async function pollForConfirmation(
+  connection: Connection,
+  signature: string,
+  lastValidBlockHeight: number
+): Promise<'confirmed' | 'expired'> {
+  for (;;) {
+    const status = await connection.getSignatureStatus(signature)
+    if (status.value?.err) throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`)
+    if (status.value?.confirmationStatus === 'confirmed' || status.value?.confirmationStatus === 'finalized') {
+      return 'confirmed'
+    }
+
+    const currentHeight = await connection.getBlockHeight('confirmed')
+    if (currentHeight > lastValidBlockHeight) return 'expired'
+
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
+  }
+}
 
 /** Sends the pack-price SOL transfer to the house treasury and waits for confirmation.
  * Throws (with a message run through friendlyPayError by the caller) on any failure —
  * callers should treat a thrown error as "no pack was opened, no charge went through".
- * `onAttempt` fires right before each wallet prompt so the caller can tell the player a
- * retry needs a fresh approval in their wallet — a silent second prompt is easy to miss,
- * which otherwise looks like "I signed it and nothing happened" while the promise just
- * hangs waiting for that unnoticed second approval. */
+ * `onAttempt` fires right before each wallet prompt, `onSigned` right after — a signed
+ * transaction can take a while to confirm on public devnet, and without a status update
+ * for that window it looks stuck on "waiting for approval" even though it's already been
+ * approved. A second prompt only ever appears if the original blockhash has genuinely
+ * expired (see pollForConfirmation above), never just because confirmation is slow. */
 export async function payForPack(
   connection: Connection,
   wallet: WalletContextState,
-  onAttempt?: (attempt: number, maxAttempts: number) => void
+  onAttempt?: (attempt: number, maxAttempts: number) => void,
+  onSigned?: () => void
 ): Promise<string> {
   if (!wallet.publicKey || !wallet.sendTransaction) {
     throw new Error('Connect your wallet to buy a pack.')
   }
-
-  let lastError: unknown
 
   for (let attempt = 1; attempt <= MAX_PAYMENT_ATTEMPTS; attempt++) {
     onAttempt?.(attempt, MAX_PAYMENT_ATTEMPTS)
@@ -55,28 +83,17 @@ export async function payForPack(
     tx.feePayer = wallet.publicKey
 
     const signature = await wallet.sendTransaction(tx, connection, { maxRetries: 5 })
+    onSigned?.()
 
-    try {
-      const confirmation = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
-      if (confirmation.value.err) throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`)
-      return signature
-    } catch (e) {
-      // The public devnet RPC's confirmation polling can time out (blockhash expires) even
-      // when the transfer actually landed -- check the signature directly before treating
-      // this as a real failure, so a slow confirm never causes a retry to charge twice.
-      const status = await connection.getSignatureStatus(signature)
-      if (status.value && !status.value.err && status.value.confirmationStatus) {
-        return signature
-      }
-
-      lastError = e
-      const message = e instanceof Error ? e.message : String(e)
-      const expired = /block height exceeded|expired/i.test(message)
-      if (!expired || attempt === MAX_PAYMENT_ATTEMPTS) throw e
-      // Blockhash expired before confirmation landed and the transfer never actually
-      // reached the chain -- retry with a fresh blockhash (the wallet will prompt again).
+    const result = await pollForConfirmation(connection, signature, lastValidBlockHeight)
+    if (result === 'confirmed') return signature
+    if (attempt === MAX_PAYMENT_ATTEMPTS) {
+      throw new Error('Payment took too long to confirm on devnet and expired after retrying.')
     }
+    // Genuinely expired (the real block height passed lastValidBlockHeight, not just a
+    // client-side timeout) -- the transfer never reached the chain, safe to retry with a
+    // fresh blockhash. The wallet will prompt again.
   }
 
-  throw lastError instanceof Error ? lastError : new Error(String(lastError))
+  throw new Error('Payment took too long to confirm on devnet and expired after retrying.')
 }

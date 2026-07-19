@@ -147,21 +147,17 @@ textarea {
   color: #0a0a0a !important;
 }
 
-/* Style the wallet modal to match site design */
-.wallet-adapter-modal-container {
+/* .wallet-adapter-modal is the fixed full-screen positioning layer and must stay
+   transparent so the landing page shows through, dimmed. .wallet-adapter-modal-overlay
+   is the element the vendor actually paints the scrim onto (also fixed, full-screen);
+   .wallet-adapter-modal-container is only the inset flex box that centers the card, not
+   full-bleed, so giving it a background paints a floating dark rectangle instead of a
+   single clean scrim behind the card. */
+.wallet-adapter-modal-overlay {
   background-color: rgba(10, 10, 10, 0.5) !important;
 }
 
-.wallet-adapter-modal {
-  background-color: #ffffff !important;
-  border: 1px solid rgba(10, 10, 10, 0.1) !important;
-  border-radius: 20px !important;
-  box-shadow: 0 20px 50px -12px rgba(10, 10, 10, 0.25) !important;
-  color: #0a0a0a !important;
-}
-
-/* .wallet-adapter-modal above only covers the full-screen positioning layer -- the
-   actual visible card is .wallet-adapter-modal-wrapper, which the vendor CSS defaults
+/* The actual visible card is .wallet-adapter-modal-wrapper, which the vendor CSS defaults
    to a dark navy background (#10141f) that was never overridden here, so the modal
    rendered dark with near-black title text on top of it -- unreadable. This is the
    element that actually needs the white popup treatment. */
@@ -198,9 +194,16 @@ textarea {
 
 .wallet-adapter-modal-list {
   background-color: transparent !important;
+  gap: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.wallet-adapter-modal-list-item {
+/* There is no `.wallet-adapter-modal-list-item` class in the vendor markup -- each row
+   is an <li> wrapping a `.wallet-adapter-button`, so that selector never matched and
+   list buttons fell back to the vendor's default white text with no background,
+   invisible on our white card except while hovered. */
+.wallet-adapter-modal-list .wallet-adapter-button {
   background-color: transparent !important;
   border: 1px solid rgba(10, 10, 10, 0.12) !important;
   border-radius: 12px !important;
@@ -208,7 +211,11 @@ textarea {
   transition: all 0.2s ease !important;
 }
 
-.wallet-adapter-modal-list-item:hover {
+.wallet-adapter-modal-list .wallet-adapter-button span {
+  color: inherit !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:not([disabled]):hover {
   background-color: #0a0a0a !important;
   color: #ffffff !important;
 }

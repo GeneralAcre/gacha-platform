@@ -8,6 +8,7 @@ import {
   createDefaultWalletNotFoundHandler,
   registerMwa,
 } from '@solana-mobile/wallet-standard-mobile'
+import { WalletConnectingOverlay } from './WalletConnectingOverlay'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
 // Register the current MWA web implementation before WalletProvider discovers wallets.
@@ -35,7 +36,10 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children })
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          <WalletConnectingOverlay />
+          {children}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   )

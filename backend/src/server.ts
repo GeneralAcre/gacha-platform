@@ -1,8 +1,8 @@
 /**
  * Moments API for the frontend to poll, plus an admin API for curating match metadata
- * (see adminMatches.ts). recentMoments/caches below are still process-memory only, but
- * admin-curated match metadata is now file-persisted (matchMetadataStore.ts) and admin
- * routes require a real server-checked token (adminAuth.ts).
+ * (see adminMatches.ts). Sealed Moments (momentsStore.ts) and the TxLINE fixture registry
+ * (txlineClient.ts) are now file-persisted, same as admin-curated match metadata
+ * (matchMetadataStore.ts); admin routes require a real server-checked token (adminAuth.ts).
  */
 import express from "express";
 import cors from "cors";
@@ -11,6 +11,7 @@ import { runSyntheticMoments } from "./synthetic";
 import { SwingDetector } from "./swingDetector";
 import { sendMomentTx } from "./sendMomentTx";
 import { MomentResult } from "./types";
+import { appendMoments, getRecentMoments } from "./momentsStore";
 import { fetchFixtureSummaries, FixtureSummary } from "./fixtures";
 import { fetchCollection, CollectionEntry } from "./collection";
 import { addMatchEvent, assertMatchExists, enrichCollectionEntries, listAdminMatches, matchImageForFixture, removeMatchEvent, updateAdminMatch } from "./adminMatches";
@@ -19,22 +20,17 @@ import { saveUploadedMatchImage } from "./matchImages";
 import { login, logout, requireAdmin } from "./adminAuth";
 
 const PORT = Number(process.env.PORT) || 8787;
-const MAX_RECENT = 50;
 const RECONNECT_DELAY_MS = 5000;
 
-const recentMoments: MomentResult[] = []; // newest first
-
-/** Attaches each Moment's match image and prepends to recentMoments. Returns the
- * enriched results in the same order they were passed in (recentMoments itself stays
- * newest-first regardless of call order). */
+/** Attaches each Moment's match image and persists it (newest-first, see momentsStore.ts).
+ * Returns the enriched results in the same order they were passed in. */
 async function recordMoments(results: MomentResult[]): Promise<MomentResult[]> {
   const enriched: MomentResult[] = [];
   for (const result of results) {
     const imageUrl = await matchImageForFixture(result.fixtureId, result.team, result.opponent).catch(() => undefined);
     enriched.push(imageUrl ? { ...result, imageUrl } : result);
   }
-  for (let i = enriched.length - 1; i >= 0; i--) recentMoments.unshift(enriched[i]);
-  recentMoments.length = Math.min(recentMoments.length, MAX_RECENT);
+  appendMoments(enriched);
   return enriched;
 }
 
@@ -102,7 +98,7 @@ app.get("/", (_req, res) => {
 
 app.get("/moments/recent", (req, res) => {
   const n = Number(req.query.n) || 20;
-  res.json(recentMoments.slice(0, n));
+  res.json(getRecentMoments(n));
 });
 
 app.post("/moments/simulate", async (_req, res) => {

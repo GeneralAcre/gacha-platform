@@ -41,7 +41,8 @@ export function LiveMatchTicker({ competition }: { competition: string }) {
         if (cancelled) return
         const live = data.filter((f) => f.status === 'live')
         const upcoming = data.filter((f) => f.status === 'upcoming')
-        setFixtures((live.length > 0 ? live : upcoming).slice(0, 12))
+        const past = data.filter((f) => f.status === 'past')
+        setFixtures([...live, ...upcoming, ...past].slice(0, 12))
         setError(false)
       } catch {
         if (!cancelled) setError(true)

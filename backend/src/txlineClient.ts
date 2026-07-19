@@ -42,6 +42,8 @@
  * The schema has no match-minute field, so OddsUpdate.matchMinute is left
  * undefined for real TxLINE data (only the synthetic test harness sets it).
  */
+import * as fs from "fs";
+import * as path from "path";
 import { config } from "./config";
 import { createTxlineApiClient, getSession } from "./txlineAuth";
 import { OddsUpdate } from "./types";
@@ -72,8 +74,38 @@ export interface FixtureMeta {
  * a match that finishes and falls out of TxLINE's list is still available
  * to us afterward (for the past-matches view, and so a live watcher already
  * mid-match doesn't lose its fixture metadata).
+ *
+ * Also persisted to a local JSON file (same pattern as matchMetadataStore.ts):
+ * without this, a process restart (Railway redeploy, crash-restart) would
+ * wipe the in-memory Map and permanently forget any fixture that had already
+ * finished and dropped out of TxLINE's own snapshot before the restart --
+ * there would be no way to ever see it again.
  */
-const fixtureRegistry = new Map<number, FixtureMeta>();
+const DATA_DIR = path.resolve(__dirname, "..", "data");
+const REGISTRY_PATH = path.join(DATA_DIR, "fixture-registry.json");
+
+function loadPersistedRegistry(): Map<number, FixtureMeta> {
+  try {
+    const raw = JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8")) as FixtureMeta[];
+    return new Map(raw.map((f) => [f.fixtureId, f]));
+  } catch (err: any) {
+    if (err.code !== "ENOENT") console.warn("[txlineClient] Failed to read persisted fixture registry, starting empty:", err.message);
+    return new Map();
+  }
+}
+
+function persistRegistry(registry: Map<number, FixtureMeta>): void {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const tmpPath = `${REGISTRY_PATH}.tmp`;
+    fs.writeFileSync(tmpPath, JSON.stringify([...registry.values()], null, 2));
+    fs.renameSync(tmpPath, REGISTRY_PATH);
+  } catch (err: any) {
+    console.warn("[txlineClient] Failed to persist fixture registry:", err.message);
+  }
+}
+
+const fixtureRegistry = loadPersistedRegistry();
 
 async function fetchFixtureMeta(): Promise<Map<number, FixtureMeta>> {
   const client = createTxlineApiClient();
@@ -94,7 +126,12 @@ async function fetchFixtureMeta(): Promise<Map<number, FixtureMeta>> {
 /** Merges the latest TxLINE fixture list into the persistent registry (never removes entries) and returns it. */
 export async function refreshFixtureRegistry(): Promise<Map<number, FixtureMeta>> {
   const fresh = await fetchFixtureMeta();
-  for (const [id, meta] of fresh) fixtureRegistry.set(id, meta);
+  let changed = false;
+  for (const [id, meta] of fresh) {
+    if (JSON.stringify(fixtureRegistry.get(id)) !== JSON.stringify(meta)) changed = true;
+    fixtureRegistry.set(id, meta);
+  }
+  if (changed) persistRegistry(fixtureRegistry);
   return fixtureRegistry;
 }
 

@@ -1,19 +1,37 @@
 /**
  * Synthetic OddsUpdate sequence for demoing the swing-detector -> memo-tx pipeline
  * without depending on a live TxLINE fixture. Shared by test/simulate.ts (CLI) and
- * server.ts's POST /moments/simulate (on-demand trigger for the frontend demo).
+ * server.ts's POST /moments/simulate (on-demand trigger for the frontend demo, used
+ * whenever a player opens a pack and no real live swing is already queued).
+ *
+ * The team pairing is picked at random from the real WORLD_CUP_2026_KNOCKOUT_RESULTS
+ * list each time, rather than a single hardcoded matchup -- previously this was always
+ * Portugal vs Spain, so every demo-fallback pull looked identical regardless of how many
+ * real WC2026 matches had actually been played. The swing script itself (the minute-by-
+ * minute shape) is still fabricated -- these teams never actually had this odds movement
+ * -- but the matchup drawn is a real past fixture, so repeated draws cover the actual
+ * tournament instead of a single fixed pair.
  */
 import { SwingDetector } from "./swingDetector";
 import { sendMomentTx } from "./sendMomentTx";
 import { MomentResult, OddsUpdate } from "./types";
+import { WORLD_CUP_2026_KNOCKOUT_RESULTS } from "./worldCup2026Results";
+
+// Reserved fixtureId range for synthetic demo pulls, well clear of any real TxLINE
+// fixtureId (those run in the tens of millions, e.g. 18241006) so there's no collision.
+const SYNTHETIC_FIXTURE_ID_BASE = 900_000;
+
+function pickSyntheticMatch(): { fixtureId: number; team: string; opponent: string } {
+  const index = Math.floor(Math.random() * WORLD_CUP_2026_KNOCKOUT_RESULTS.length);
+  const result = WORLD_CUP_2026_KNOCKOUT_RESULTS[index];
+  return { fixtureId: SYNTHETIC_FIXTURE_ID_BASE + index, team: result.team1, opponent: result.team2 };
+}
 
 export function syntheticSequence(): OddsUpdate[] {
-  const fixtureId = 999001;
-  const team = "Portugal";
-  const opponent = "Spain";
+  const { fixtureId, team, opponent } = pickSyntheticMatch();
   const baseTs = Date.now() - 10 * 60 * 1000;
 
-  // Portugal concede early, claw back with two late goals: underdog -> favorite flip,
+  // Underdog concedes early, claws back with two late goals: underdog -> favorite flip,
   // then a big swing after a red card, all within the 5-minute detector window.
   const script: Array<{ minute: number; winProbability: number; offsetMs: number }> = [
     { minute: 10, winProbability: 45, offsetMs: 0 },

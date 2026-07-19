@@ -29,7 +29,15 @@ registerMwa({
 })
 
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const endpoint = useMemo(() => clusterApiUrl('devnet'), [])
+  // The public devnet RPC (clusterApiUrl's default) is shared by every developer testing
+  // on devnet worldwide, so it's rate-limited and often slow to confirm under load -- that's
+  // what shows up as "Approved -- confirming on devnet..." hanging in packPayment.ts. Set
+  // VITE_SOLANA_RPC_URL to a dedicated devnet endpoint (Helius/QuickNode/Alchemy/Triton all
+  // have free devnet tiers) to fix that; falls back to the public endpoint if unset.
+  const endpoint = useMemo(
+    () => (import.meta.env.VITE_SOLANA_RPC_URL as string | undefined) || clusterApiUrl('devnet'),
+    []
+  )
   // MWA is registered above as a Wallet Standard wallet; desktop standard wallets remain discoverable.
   const wallets = useMemo(() => [], [])
 

@@ -32,20 +32,28 @@ const POLL_INTERVAL_MS = 1500
  * checking for as long as the blockhash that was actually signed remains genuinely valid
  * (compared against the real current block height, not a client-side timer), so a signed
  * transaction gets every real chance to land before anything asks for a new signature. */
+// Expiry only needs to be caught within a couple of seconds of actually happening (the
+// window is ~60-90s of block height), so block height is checked every 3rd poll instead of
+// every poll -- halves the RPC call volume against a rate-limited endpoint for no real loss
+// of responsiveness.
+const BLOCK_HEIGHT_CHECK_EVERY_N_POLLS = 3
+
 async function pollForConfirmation(
   connection: Connection,
   signature: string,
   lastValidBlockHeight: number
 ): Promise<'confirmed' | 'expired'> {
-  for (;;) {
+  for (let poll = 0; ; poll++) {
     const status = await connection.getSignatureStatus(signature)
     if (status.value?.err) throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`)
     if (status.value?.confirmationStatus === 'confirmed' || status.value?.confirmationStatus === 'finalized') {
       return 'confirmed'
     }
 
-    const currentHeight = await connection.getBlockHeight('confirmed')
-    if (currentHeight > lastValidBlockHeight) return 'expired'
+    if (poll % BLOCK_HEIGHT_CHECK_EVERY_N_POLLS === 0) {
+      const currentHeight = await connection.getBlockHeight('confirmed')
+      if (currentHeight > lastValidBlockHeight) return 'expired'
+    }
 
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
   }

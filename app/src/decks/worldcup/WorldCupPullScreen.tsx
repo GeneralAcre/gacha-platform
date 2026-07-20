@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { fetchRecentMoments, triggerSimulatedMoments, explorerTxUrl, momentKey, type MomentResult } from './momentsApi'
 import { MomentCardArt, MomentShareButtons, useMomentCardDownload } from './MomentCardArt'
@@ -13,8 +13,7 @@ import { COMPETITIONS, DEFAULT_COMPETITION } from './competitions'
 import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
 import { PACK_PRICE_SOL, payForPack, friendlyPayError } from './packPayment'
 import { PackPurchaseModal } from './PackPurchaseModal'
-
-type CardArtComponent = typeof MomentCardArt
+import { formatSwing, MomentTile, type CardArtComponent } from './MomentTile'
 
 // Every live pack pulls from the same real (or auto-sealed-on-demand) Moment queue and the
 // same claim-as-NFT flow -- only the card face differs, keyed by pack id.
@@ -25,9 +24,19 @@ const CARD_ART_BY_PACK: Record<string, CardArtComponent> = {
 
 const POLL_INTERVAL_MS = 3000
 
-function formatSwing(moment: MomentResult): string {
-  const arrow = moment.toProbability >= moment.fromProbability ? '↑' : '↓'
-  return `${Math.round(moment.fromProbability)}% → ${Math.round(moment.toProbability)}% ${arrow}`
+// Known Semifinal/Final matchups (mirrors backend/src/worldCup2026Results.ts's Semifinal
+// entries and collection.ts's labelLiveRound Final assumption) -- the draw page's preview
+// strip only teases the tournament's marquee matches; the full archive lives on Collection.
+const SEMIFINAL_OR_FINAL_PAIRS: Array<[string, string]> = [
+  ['Spain', 'France'],
+  ['Argentina', 'England'],
+  ['Spain', 'Argentina'],
+]
+
+function isSemifinalOrFinal(moment: MomentResult): boolean {
+  return SEMIFINAL_OR_FINAL_PAIRS.some(
+    ([a, b]) => (moment.team === a && moment.opponent === b) || (moment.team === b && moment.opponent === a)
+  )
 }
 
 export function WorldCupPullScreen() {
@@ -45,6 +54,7 @@ export function WorldCupPullScreen() {
   const [selectedCompetition, setSelectedCompetition] = useState(DEFAULT_COMPETITION)
   const selectedPack = COMPETITIONS.find((pack) => pack.id === selectedCompetition) ?? COMPETITIONS[0]
   const CardArt = CARD_ART_BY_PACK[selectedCompetition] ?? MomentCardArt
+  const semifinalOrFinalMoments = useMemo(() => recentMoments.filter(isSemifinalOrFinal), [recentMoments])
 
   const seenRef = useRef<Set<string>>(new Set())
   const initializedRef = useRef(false)
@@ -249,12 +259,18 @@ export function WorldCupPullScreen() {
           )}
         </div>
 
-        {recentMoments.length > 0 && (
+        {semifinalOrFinalMoments.length > 0 && (
           <div className="mt-6">
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">Trending Draws</p>
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">Semifinal &amp; Final Draws</p>
             <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-              {recentMoments.slice(0, 12).map((m) => (
-                <MomentTile key={momentKey(m)} moment={m} CardArt={CardArt} onOpen={() => setDetailMoment(m)} />
+              {semifinalOrFinalMoments.slice(0, 12).map((m) => (
+                <MomentTile
+                  key={momentKey(m)}
+                  moment={m}
+                  CardArt={CardArt}
+                  onOpen={() => setDetailMoment(m)}
+                  className="w-36 shrink-0 sm:w-40"
+                />
               ))}
             </div>
           </div>
@@ -273,34 +289,6 @@ export function WorldCupPullScreen() {
         )}
       </div>
     </div>
-  )
-}
-
-function MomentTile({ moment, CardArt, onOpen }: { moment: MomentResult; CardArt: CardArtComponent; onOpen: () => void }) {
-  const rarityStyle = MOMENT_RARITY_STYLE[momentRarity(moment)]
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex w-36 shrink-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#141414] p-3 text-left transition-transform hover:-translate-y-1 sm:w-40"
-    >
-      <CardArt moment={moment} className="w-full rounded-xl" />
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed Moment</p>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${rarityStyle.badge}`}>
-          {rarityStyle.label}
-        </span>
-      </div>
-      <p className="truncate text-sm font-black tracking-tight text-white">
-        {moment.team} <span className="text-white/30">vs</span> {moment.opponent}
-      </p>
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold text-white/50">{formatSwing(moment)}</span>
-        <span className="shrink-0 rounded-full bg-[#ffd447]/15 px-2 py-1 text-[10px] font-black text-[#ffd447]">
-          {Math.abs(Math.round(moment.deltaProbability))} PTS
-        </span>
-      </div>
-    </button>
   )
 }
 

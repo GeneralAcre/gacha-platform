@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchCollection, fetchRecentMoments, type CollectionEntry, type MomentResult } from './momentsApi'
+import { fetchCollection, fetchRecentMoments, momentKey, type CollectionEntry, type MomentResult } from './momentsApi'
 import { CollectionDetailModal } from './CollectionDetailModal'
+import { MomentDetailModal } from './MomentDetailModal'
+import { MomentCardArt } from './MomentCardArt'
 import { ROUND_ORDER, CollectionTile } from './collectionShared'
+import { MomentTile } from './MomentTile'
 
 const COLLECTION_POLL_INTERVAL_MS = 15000
 const MOMENTS_POLL_INTERVAL_MS = 5000
@@ -15,6 +18,7 @@ export function CollectionScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detailEntry, setDetailEntry] = useState<CollectionEntry | null>(null)
+  const [detailMoment, setDetailMoment] = useState<MomentResult | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -89,7 +93,7 @@ export function CollectionScreen() {
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Verified results + real-time TxLINE odds</p>
         <h1 className="font-koulen mt-1 text-3xl tracking-tight text-white md:text-4xl">World Cup 2026 Collection</h1>
         <p className="mt-2 max-w-xl text-sm text-white/50">
-          Every knockout match on the site, whether you've drawn it or not — verified results and matches TxLINE is tracking live.
+          Every match on the site, whether you've drawn it or not — verified results and matches TxLINE is tracking live.
         </p>
 
         {error && (
@@ -101,30 +105,47 @@ export function CollectionScreen() {
             <p className="text-sm font-bold uppercase tracking-widest text-white/50">Loading the collection...</p>
           </div>
         ) : (
-          ROUND_ORDER.map((round) => {
-            const entries = grouped.get(round) ?? []
-            if (entries.length === 0) return null
-            return (
-              <div key={round} className="mt-8">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">{round}</p>
+          <>
+            {recentMoments.length > 0 && (
+              <div className="mt-8">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Sealed Moments</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {entries.map((entry) => (
-                    <CollectionTile
-                      key={entry.id}
-                      entry={entry}
-                      hasMoments={momentsFor(entry).length > 0}
-                      onOpen={() => setDetailEntry(entry)}
-                    />
+                  {recentMoments.map((m) => (
+                    <MomentTile key={momentKey(m)} moment={m} CardArt={MomentCardArt} onOpen={() => setDetailMoment(m)} />
                   ))}
                 </div>
               </div>
-            )
-          })
+            )}
+
+            <div className="mt-10">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Match Results</p>
+              {ROUND_ORDER.map((round) => {
+                const entries = grouped.get(round) ?? []
+                if (entries.length === 0) return null
+                return (
+                  <div key={round} className="mt-8">
+                    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">{round}</p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                      {entries.map((entry) => (
+                        <CollectionTile
+                          key={entry.id}
+                          entry={entry}
+                          hasMoments={momentsFor(entry).length > 0}
+                          onOpen={() => setDetailEntry(entry)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
         )}
 
         {detailEntry && (
           <CollectionDetailModal entry={detailEntry} moments={momentsFor(detailEntry)} onClose={() => setDetailEntry(null)} />
         )}
+        {detailMoment && <MomentDetailModal moment={detailMoment} CardArt={MomentCardArt} onClose={() => setDetailMoment(null)} />}
       </div>
     </div>
   )

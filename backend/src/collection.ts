@@ -5,7 +5,7 @@
  * odds, eligible for real Sealed Moments). Backs GET /collection.
  */
 import { fetchFixtureSummaries } from "./fixtures";
-import { WORLD_CUP_2026_KNOCKOUT_RESULTS, KnockoutRound } from "./worldCup2026Results";
+import { WORLD_CUP_2026_RESULTS, Round } from "./worldCup2026Results";
 import type { MatchEvent } from "./matchMetadataStore";
 
 export type CollectionEntryKind = "result" | "live";
@@ -50,21 +50,29 @@ function dateStringToMs(date: string): number {
   return new Date(`${date}T00:00:00Z`).getTime();
 }
 
-const ROUND_ORDER: Record<KnockoutRound | "Third Place" | "Final" | "World Cup", number> = {
-  "Round of 32": 0,
-  "Round of 16": 1,
-  Quarterfinal: 2,
-  Semifinal: 3,
-  "Third Place": 4,
-  Final: 5,
-  "World Cup": 6,
+const ROUND_ORDER: Record<Exclude<Round, "Group Stage"> | "Third Place" | "Final" | "World Cup", number> = {
+  "Round of 32": 1,
+  "Round of 16": 2,
+  Quarterfinal: 3,
+  Semifinal: 4,
+  "Third Place": 5,
+  Final: 6,
+  "World Cup": 7,
 };
 
+/** Group-stage entries are labeled per-group ("Group A") rather than one lumped "Group
+ * Stage" bucket, so CollectionScreen's round-based grouping shows each group separately --
+ * all of them still need to sort before every knockout round. */
+function roundOrder(round: string): number {
+  if (round.startsWith("Group ")) return 0;
+  return ROUND_ORDER[round as keyof typeof ROUND_ORDER] ?? 99;
+}
+
 export async function fetchCollection(): Promise<CollectionEntry[]> {
-  const resultEntries: CollectionEntry[] = WORLD_CUP_2026_KNOCKOUT_RESULTS.map((r, i) => ({
+  const resultEntries: CollectionEntry[] = WORLD_CUP_2026_RESULTS.map((r, i) => ({
     id: `result-${i}`,
     kind: "result",
-    round: r.round,
+    round: r.round === "Group Stage" ? r.group : r.round,
     team1: r.team1,
     team2: r.team2,
     dateMs: dateStringToMs(r.date),
@@ -92,7 +100,7 @@ export async function fetchCollection(): Promise<CollectionEntry[]> {
     }));
 
   return [...resultEntries, ...liveEntries].sort((a, b) => {
-    const roundDiff = (ROUND_ORDER[a.round as keyof typeof ROUND_ORDER] ?? 99) - (ROUND_ORDER[b.round as keyof typeof ROUND_ORDER] ?? 99);
+    const roundDiff = roundOrder(a.round) - roundOrder(b.round);
     return roundDiff !== 0 ? roundDiff : a.dateMs - b.dateMs;
   });
 }

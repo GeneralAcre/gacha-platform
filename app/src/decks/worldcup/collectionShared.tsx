@@ -1,7 +1,9 @@
 import { CollectionCardArt } from './CollectionCardArt'
 import type { CollectionEntry } from './momentsApi'
 
-export const ROUND_ORDER = ['Round of 32', 'Round of 16', 'Quarterfinal', 'Semifinal', 'Third Place', 'Final']
+const GROUP_STAGE_ROUNDS = 'ABCDEFGHIJKL'.split('').map((letter) => `Group ${letter}`)
+
+export const ROUND_ORDER = [...GROUP_STAGE_ROUNDS, 'Round of 32', 'Round of 16', 'Quarterfinal', 'Semifinal', 'Third Place', 'Final']
 
 export function scoreLabel(entry: CollectionEntry): string {
   if (entry.kind === 'result') return `${entry.score1} – ${entry.score2}`

@@ -33,7 +33,9 @@ export const CollectionCardArt = forwardRef<SVGSVGElement, { entry: CollectionEn
     const uid = useId().replace(/:/g, '')
     const isResult = entry.kind === 'result'
     const accent = ROUND_ACCENT[entry.round] ?? ROUND_ACCENT['World Cup']
-    const chipLabel = ROUND_ABBR[entry.round] ?? entry.round.slice(0, 4).toUpperCase()
+    // Group-stage rounds are "Group A".."Group L" (see collection.ts) -- not worth a fixed
+    // entry per letter in ROUND_ABBR, just abbreviate the shared "Group " prefix.
+    const chipLabel = ROUND_ABBR[entry.round] ?? (entry.round.startsWith('Group ') ? entry.round.replace('Group ', 'GRP ') : entry.round.slice(0, 4).toUpperCase())
     const wp = entry.winProbability
 
     return (

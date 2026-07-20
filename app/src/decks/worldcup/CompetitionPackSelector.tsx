@@ -1,5 +1,5 @@
 import { COMPETITIONS } from './competitions'
-import { PACK_PRICE_SOL } from './packPayment'
+import { HISTORY_PACK_PRICE_SOL, LIVE_PACK_PRICE_SOL } from './packPayment'
 
 // Every pack's art is a slightly different native ratio (0.60-0.67), so letting each tile
 // size to its own image's aspect ratio left them at mismatched heights in the same row --
@@ -16,7 +16,9 @@ export function CompetitionPackSelector({ selected, onPackClick }: { selected: s
           <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#8fe3b0]">Choose your pack</p>
           <h1 className="font-koulen mt-1 text-2xl tracking-tight text-paper md:text-3xl">Open a match moment</h1>
         </div>
-        <p className="rounded-full border border-paper/15 bg-paper/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-paper/60">{PACK_PRICE_SOL.toFixed(2)} devnet SOL / pack</p>
+        <p className="rounded-full border border-paper/15 bg-paper/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-paper/60">
+          {HISTORY_PACK_PRICE_SOL.toFixed(2)}{'–'}{LIVE_PACK_PRICE_SOL.toFixed(2)} devnet SOL / pack
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 sm:gap-x-5">
@@ -55,7 +57,9 @@ export function CompetitionPackSelector({ selected, onPackClick }: { selected: s
               </div>
               <div className={`pt-3 ${ART_MAX_WIDTH}`}>
                 <p className="text-sm font-black leading-tight text-paper">{comp.label}</p>
-                <p className={`mt-1 text-[9px] font-bold uppercase tracking-widest ${comp.live ? 'text-[#8fe3b0]' : 'text-paper/40'}`}>{comp.live ? `${PACK_PRICE_SOL.toFixed(2)} devnet SOL` : 'Coming soon'}</p>
+                <p className={`mt-1 text-[9px] font-bold uppercase tracking-widest ${comp.live ? 'text-[#8fe3b0]' : 'text-paper/40'}`}>
+                  {comp.live ? `${HISTORY_PACK_PRICE_SOL.toFixed(2)}–${LIVE_PACK_PRICE_SOL.toFixed(2)} devnet SOL` : 'Coming soon'}
+                </p>
               </div>
             </button>
           )

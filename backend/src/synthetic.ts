@@ -96,7 +96,10 @@ export async function runSyntheticMoments(): Promise<MomentResult[]> {
   const detector = new SwingDetector();
   const moments = syntheticSequence()
     .map((update) => detector.ingest(update))
-    .filter((moment): moment is NonNullable<typeof moment> => moment !== null);
+    .filter((moment): moment is NonNullable<typeof moment> => moment !== null)
+    // ingest() defaults every Moment's source to "swing" (the real-detection assumption) --
+    // override it here since this whole sequence is the fabricated demo fallback.
+    .map((moment) => ({ ...moment, source: "synthetic" as const }));
 
   const signatures = await Promise.all(moments.map((moment) => sendMomentTx(moment)));
   return moments.map((moment, i) => ({ ...moment, signature: signatures[i] }));

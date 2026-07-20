@@ -5,7 +5,20 @@ import type { WalletContextState } from '@solana/wallet-adapter-react'
 // House wallet — the same devnet keypair the backend uses to sign Moment memo
 // transactions, so pack revenue also keeps that wallet funded for tx fees.
 export const TREASURY_PUBKEY = new PublicKey('H6rUHSPYTRu65WSgVhVdGaB94SReGsvL7NNCTUsfasCn')
-export const PACK_PRICE_SOL = 0.02
+
+// Two draw modes, two prices: a Live pack only ever pulls a real, already-queued
+// TxLINE-backed Moment (swing-detected or event-triggered) -- pricier, since it's
+// guaranteed real and only available when something's actually queued. A History pack
+// always seals a fresh synthetic demo Moment instead (see backend/src/synthetic.ts) --
+// cheaper, always available, never real. Placeholder devnet-SOL amounts, easy to retune.
+export const LIVE_PACK_PRICE_SOL = 0.05
+export const HISTORY_PACK_PRICE_SOL = 0.01
+
+export type DrawMode = 'live' | 'history'
+
+export function packPriceSol(mode: DrawMode): number {
+  return mode === 'live' ? LIVE_PACK_PRICE_SOL : HISTORY_PACK_PRICE_SOL
+}
 
 export function friendlyPayError(e: unknown): string {
   const message = e instanceof Error ? e.message : String(e)
@@ -42,8 +55,8 @@ const BLOCK_HEIGHT_CHECK_EVERY_N_POLLS = 3
 // `confirmed` (needs supermajority cluster vote lockout, can take several seconds under
 // devnet congestion) trades a small, devnet-only risk -- a `processed` tx can in rare cases
 // still get dropped if the slot it landed in doesn't end up on the finalized fork -- for a
-// much snappier reveal. Worth it here: pack payments are a fixed 0.02 devnet SOL with no
-// real value, and a dropped payment just means retrying, not losing anything real.
+// much snappier reveal. Worth it here: pack payments are a small fixed amount of devnet SOL
+// with no real value, and a dropped payment just means retrying, not losing anything real.
 async function pollForConfirmation(
   connection: Connection,
   signature: string,
@@ -80,6 +93,7 @@ async function pollForConfirmation(
 export async function payForPack(
   connection: Connection,
   wallet: WalletContextState,
+  priceSol: number,
   onAttempt?: (attempt: number, maxAttempts: number) => void,
   onSigned?: () => void
 ): Promise<string> {
@@ -94,7 +108,7 @@ export async function payForPack(
       SystemProgram.transfer({
         fromPubkey: wallet.publicKey,
         toPubkey: TREASURY_PUBKEY,
-        lamports: Math.round(PACK_PRICE_SOL * LAMPORTS_PER_SOL),
+        lamports: Math.round(priceSol * LAMPORTS_PER_SOL),
       })
     )
     tx.recentBlockhash = blockhash

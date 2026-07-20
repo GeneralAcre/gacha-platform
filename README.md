@@ -20,9 +20,9 @@ Every draw can be claimed as a real SPL NFT on devnet, then listed for sale or b
 
 ## How a draw actually works
 
-1. **Live odds** flow from TxLINE into the backend (`backend/src/txlineClient.ts`), which detects swings (`swingDetector.ts`) and seals each one as a Solana devnet memo transaction (`sendMomentTx.ts`) — a permanent, publicly verifiable on-chain record.
+1. **Live odds** flow from TxLINE into the backend (`backend/src/txlineClient.ts`), which detects swings (`swingDetector.ts`) and seals each one as a Solana devnet memo transaction (`sendMomentTx.ts`) — a permanent, publicly verifiable on-chain record. An admin can also report a real goal/card for a live match, which seals a real Moment tagged with that event (`matchEventMoments.ts`) instead of relying on the algorithmic threshold alone.
 2. The frontend polls `/moments/recent` for newly sealed Moments and queues them per pack.
-3. Paying for a pack (`app/src/decks/worldcup/packPayment.ts`) sends a real devnet SOL transfer to the house treasury, then reveals whatever real Moment is queued — or seals a fresh one on demand (`/moments/simulate`) if none is.
+3. Paying for a pack (`app/src/decks/worldcup/packPayment.ts`) is one of two explicit choices: **Live** (pricier) sends a real devnet SOL transfer and reveals the next real, already-queued Moment — disabled if none is queued; **History** (cheaper) always seals a fresh synthetic demo Moment on demand (`/moments/simulate`), regardless of what's queued. Every Moment is tagged with its real `source` (`swing`, `event`, or `synthetic`) so the UI can badge real vs. demo pulls.
 4. A revealed Moment can be claimed as an NFT (`mint_moment_nft`), which mints an SPL token keyed by the Moment's own memo signature — first claimer wins.
 5. Claimed NFTs can be listed for sale (`list_card`) from Profile, browsed on the Marketplace, and bought (`buy_card`) or the listing cancelled (`cancel_listing`) — all escrowed on-chain.
 

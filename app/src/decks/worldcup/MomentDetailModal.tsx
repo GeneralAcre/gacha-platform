@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { MomentCardArt, TRIGGER_EVENT_LABEL } from './MomentCardArt'
-import { explorerTxUrl, type MomentResult } from './momentsApi'
+import { explorerTxUrl, isRealMoment, type MomentResult } from './momentsApi'
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -56,7 +56,16 @@ export function MomentDetailModal({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed Moment</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed Moment</p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                isRealMoment(moment) ? 'bg-[#8fe3b0]/15 text-[#8fe3b0]' : 'bg-white/10 text-white/50'
+              }`}
+            >
+              {isRealMoment(moment) ? 'Real · TxLINE' : 'Demo Seal'}
+            </span>
+          </div>
           <h2 className="mt-2 text-2xl font-black leading-tight tracking-tight text-white">
             {moment.team} <span className="text-white/30">vs</span> {moment.opponent}
           </h2>

@@ -64,6 +64,7 @@ export async function sealEventTriggeredMoment(
     narrative: `${minute}' -- ${EVENT_LABEL[eventType]}${playerName ? ` (${playerName})` : ""}: ${lastPoint.team}'s win probability moved from ${Math.round(fromProbability)}% to ${Math.round(to)}%`,
     matchStarted: true,
     triggerEvent: eventType,
+    source: "event",
   };
 
   const signature = await sendMomentTx(moment);

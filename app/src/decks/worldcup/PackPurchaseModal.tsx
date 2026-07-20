@@ -1,11 +1,14 @@
-import { PACK_PRICE_SOL } from './packPayment'
+import { LIVE_PACK_PRICE_SOL, HISTORY_PACK_PRICE_SOL, type DrawMode } from './packPayment'
 
 /** Shared "Ready to draw?" confirmation popup for both Event Pack and Match Pack —
  * same white card treatment as the wallet-connect modal, so every purchase confirmation
- * on the site reads the same way instead of the near-black glass panel used elsewhere. */
+ * on the site reads the same way instead of the near-black glass panel used elsewhere.
+ * Two draw modes, two prices: Live only pulls a real already-queued Moment (disabled when
+ * none is queued), History always seals a fresh synthetic demo one (see packPayment.ts). */
 export function PackPurchaseModal({
   packArt,
   packLabel,
+  liveAvailable,
   paying,
   payingLabel,
   onCancel,
@@ -13,10 +16,11 @@ export function PackPurchaseModal({
 }: {
   packArt: string
   packLabel: string
+  liveAvailable: boolean
   paying: boolean
   payingLabel?: string
   onCancel: () => void
-  onConfirm: () => void
+  onConfirm: (mode: DrawMode) => void
 }) {
   const titleId = `${packLabel.toLowerCase().replace(/\s+/g, '-')}-title`
   return (
@@ -28,24 +32,33 @@ export function PackPurchaseModal({
           Ready to draw?
         </h2>
         <p className="mt-3 text-sm leading-6 text-ink/60">
-          Pay {PACK_PRICE_SOL.toFixed(2)} devnet SOL to open your {packLabel} and reveal a sealed match moment.
+          Choose a real, currently-queued Live draw, or a cheaper History draw sealed fresh on demand.
         </p>
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => onConfirm('live')}
+            disabled={paying || !liveAvailable}
+            title={liveAvailable ? undefined : 'No real Moment is queued right now'}
+            className="rounded-full bg-[#8fe3b0] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-ink transition-colors hover:bg-[#b1f2cb] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {paying ? (payingLabel ?? 'Confirming...') : `Open Live — ${LIVE_PACK_PRICE_SOL.toFixed(2)} SOL`}
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm('history')}
+            disabled={paying}
+            className="rounded-full bg-ink/5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-ink transition-colors hover:bg-ink/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {paying ? (payingLabel ?? 'Confirming...') : `Open History — ${HISTORY_PACK_PRICE_SOL.toFixed(2)} SOL`}
+          </button>
           <button
             type="button"
             onClick={onCancel}
             disabled={paying}
-            className="flex-1 rounded-full border border-ink/20 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-ink transition-colors hover:bg-ink/5 disabled:opacity-50"
+            className="mt-1 rounded-full border border-ink/20 px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ink transition-colors hover:bg-ink/5 disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={paying}
-            className="flex-1 rounded-full bg-[#8fe3b0] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-ink transition-colors hover:bg-[#b1f2cb] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {paying ? (payingLabel ?? 'Confirming...') : `Pay ${PACK_PRICE_SOL.toFixed(2)} SOL`}
           </button>
         </div>
       </div>

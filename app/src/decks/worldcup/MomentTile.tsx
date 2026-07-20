@@ -1,6 +1,6 @@
 import { MomentCardArt } from './MomentCardArt'
 import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
-import type { MomentResult } from './momentsApi'
+import { isRealMoment, type MomentResult } from './momentsApi'
 
 export type CardArtComponent = typeof MomentCardArt
 
@@ -25,13 +25,23 @@ export function MomentTile({
   className?: string
 }) {
   const rarityStyle = MOMENT_RARITY_STYLE[momentRarity(moment)]
+  const isReal = isRealMoment(moment)
   return (
     <button
       type="button"
       onClick={onOpen}
       className={`flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#141414] p-3 text-left transition-transform hover:-translate-y-1 ${className}`}
     >
-      <CardArt moment={moment} className="w-full rounded-xl" />
+      <div className="relative">
+        <CardArt moment={moment} className="w-full rounded-xl" />
+        <span
+          className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest shadow ${
+            isReal ? 'bg-[#8fe3b0] text-ink' : 'bg-white/85 text-ink/70'
+          }`}
+        >
+          {isReal ? 'Real' : 'Demo'}
+        </span>
+      </div>
       <div className="mt-3 flex items-center justify-between gap-2">
         <p className="truncate text-[10px] font-bold uppercase tracking-widest text-white/40">Sealed Moment</p>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${rarityStyle.badge}`}>

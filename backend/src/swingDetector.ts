@@ -88,6 +88,10 @@ export class SwingDetector {
       kind,
       narrative: buildNarrative(update.team, fromProbability, toProbability, update.matchMinute),
       matchStarted: update.matchStarted,
+      // Default assumption: a real algorithmic detection off real odds. synthetic.ts runs
+      // the demo sequence through its own throwaway SwingDetector and overrides this to
+      // "synthetic" afterward, since ingest() itself has no way to know its input is fake.
+      source: "swing",
     };
   }
 }

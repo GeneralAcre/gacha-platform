@@ -33,6 +33,11 @@ export interface Moment {
    * TxLINE's odds feed has no goal/card data of its own, so this is a human-attested
    * real event, distinct from the generic swing/flip framing every other Moment uses. */
   triggerEvent?: "GOAL" | "YELLOW_CARD" | "RED_CARD";
+  /** How this Moment was actually generated -- "swing"/"event" are both real, TxLINE-backed
+   * (algorithmic threshold vs. admin-reported event); "synthetic" is the fabricated demo
+   * fallback (synthetic.ts) used when nothing real is queued. Lets the frontend show a
+   * real-vs-demo badge instead of leaving that distinction invisible. */
+  source: "swing" | "event" | "synthetic";
 }
 
 /** A Moment that has been sealed on-chain as a devnet memo transaction. */

@@ -24,6 +24,16 @@ export interface MomentResult {
    * TxLINE's odds feed has no goal/card data of its own, so this is the one case where
    * the card's "why" is a real, human-attested event instead of a swing/flip guess. */
   triggerEvent?: 'GOAL' | 'YELLOW_CARD' | 'RED_CARD'
+  /** "swing"/"event" are both real, TxLINE-backed; "synthetic" is the fabricated demo
+   * fallback used when nothing real is queued (see backend/src/synthetic.ts). */
+  source: 'swing' | 'event' | 'synthetic'
+}
+
+/** Real (TxLINE-backed, whether algorithmically swing-detected or admin-event-triggered)
+ * vs. synthetic (fabricated demo fallback) -- the one distinction players actually care
+ * about, so card badges collapse the three backend `source` values down to this. */
+export function isRealMoment(moment: MomentResult): boolean {
+  return moment.source !== 'synthetic'
 }
 
 export interface FixtureSummary {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { fetchRecentMoments, triggerSimulatedMoments, explorerTxUrl, momentKey, type MomentResult } from './momentsApi'
+import { fetchRecentMoments, triggerSimulatedMoments, explorerTxUrl, isRealMoment, momentKey, type MomentResult } from './momentsApi'
 import { MomentCardArt, MomentShareButtons, useMomentCardDownload } from './MomentCardArt'
 import { MatchMomentCardArt } from './MatchMomentCardArt'
 import { MomentReel } from './MomentReel'
@@ -11,7 +11,7 @@ import { CompetitionPackSelector } from './CompetitionPackSelector'
 import { PackOddsPanel } from './PackOddsPanel'
 import { COMPETITIONS, DEFAULT_COMPETITION } from './competitions'
 import { momentRarity, MOMENT_RARITY_STYLE } from './momentRarity'
-import { PACK_PRICE_SOL, payForPack, friendlyPayError } from './packPayment'
+import { LIVE_PACK_PRICE_SOL, HISTORY_PACK_PRICE_SOL, packPriceSol, payForPack, friendlyPayError, type DrawMode } from './packPayment'
 import { PackPurchaseModal } from './PackPurchaseModal'
 import { formatSwing, MomentTile, type CardArtComponent } from './MomentTile'
 
@@ -101,14 +101,15 @@ export function WorldCupPullScreen() {
   // Packs accumulate silently as real swings arrive — nothing reveals until the player
   // actually pays to open one. Each open is its own payment, not a one-time unlock.
   // Payment happens first (so the wallet prompt appears immediately, not after several
-  // seconds of on-chain work the player never asked to wait for) and only once it's
-  // confirmed do we pick a Moment to reveal: whatever real live-match swing is already
-  // queued, or — since none is queued between matches, or for a demo — seal a fresh one
-  // on demand through the same real memo-tx pipeline. Every pack (Event, Match) shares
-  // this exact mechanic — always claimable as an NFT, always the same real pipeline —
-  // only the reveal's card art differs.
-  const handleOpenPack = useCallback(async () => {
+  // seconds of on-chain work the player never asked to wait for). `mode` decides where the
+  // reveal comes from -- a Live pack only ever takes the next real, already-queued Moment
+  // (never falls back), a History pack always seals a fresh synthetic demo one on the spot,
+  // regardless of what's queued. Every pack (Event, Match) shares this exact mechanic —
+  // always claimable as an NFT, always the same real memo-tx pipeline — only the reveal's
+  // card art differs.
+  const handleOpenPack = useCallback(async (mode: DrawMode) => {
     if (paying || openedMoment) return
+    if (mode === 'live' && queue.length === 0) return
     if (!wallet.publicKey || !wallet.sendTransaction) {
       setPayError('Connect your wallet to open a pack.')
       return
@@ -121,6 +122,7 @@ export function WorldCupPullScreen() {
       await payForPack(
         connection,
         wallet,
+        packPriceSol(mode),
         (attempt, max) => {
           setPayStatus(
             attempt === 1
@@ -139,15 +141,14 @@ export function WorldCupPullScreen() {
 
     // Payment is confirmed on-chain from here on — the player has already been charged,
     // so a failure past this point must never just vanish silently.
-    const fromQueue = queue.length > 0
     let nextMoment: MomentResult
 
-    if (fromQueue) {
+    if (mode === 'live') {
       nextMoment = queue[0]
     } else {
       // The player has already paid for this pack — sealing must not have a dead end,
       // so this retries on the spot (no further charge) rather than surfacing a failure
-      // that would make "Open Pack" look safe to click again when it would charge twice.
+      // that would make "Open History" look safe to click again when it would charge twice.
       setPayStatus('Payment confirmed — sealing your card on-chain...')
       const SEAL_ATTEMPTS = 3
       let sealed: MomentResult | undefined
@@ -175,7 +176,7 @@ export function WorldCupPullScreen() {
     setPaying(false)
     setPayStatus(null)
     setOpenedMoment(nextMoment)
-    if (fromQueue) setQueue((q) => q.slice(1))
+    if (mode === 'live') setQueue((q) => q.slice(1))
   }, [queue, paying, openedMoment, wallet, connection])
 
   const handleDismiss = useCallback(() => setOpenedMoment(null), [])
@@ -189,10 +190,10 @@ export function WorldCupPullScreen() {
     setPaymentPackOpen(true)
   }, [])
 
-  const handlePackPayment = useCallback(() => {
+  const handlePackPayment = useCallback((mode: DrawMode) => {
     if (paying || openedMoment) return
     setPaymentPackOpen(false)
-    void handleOpenPack()
+    void handleOpenPack(mode)
   }, [handleOpenPack, openedMoment, paying])
 
   return (
@@ -230,20 +231,28 @@ export function WorldCupPullScreen() {
           ) : (
             <div className="flex flex-col items-center gap-3 py-6">
               <p className="text-sm font-bold uppercase tracking-widest text-white/80">
-                {queue.length > 0 ? `${queue.length} sealed pack${queue.length > 1 ? 's' : ''} ready` : 'Ready to open a pack'}
+                {queue.length > 0 ? `${queue.length} real Moment${queue.length > 1 ? 's' : ''} queued` : 'No real Moment queued right now'}
               </p>
               <p className="max-w-xs text-center text-xs text-white/40">
-                {queue.length > 0
-                  ? 'A real odds swing was just detected in a live match. Pay to open the pack and reveal the Moment card.'
-                  : 'Pay to seal and open a fresh pack right now.'}
+                Open Live for a guaranteed-real, already-detected Moment, or History for a cheaper demo seal generated fresh on the spot.
               </p>
-              <button
-                onClick={handleOpenPack}
-                disabled={paying}
-                className="mt-2 rounded-full bg-[#ffd447] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-50"
-              >
-                {paying ? 'Processing...' : `Open Pack — ${PACK_PRICE_SOL} SOL`}
-              </button>
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  onClick={() => handleOpenPack('live')}
+                  disabled={paying || queue.length === 0}
+                  title={queue.length === 0 ? 'No real Moment is queued right now' : undefined}
+                  className="rounded-full bg-[#8fe3b0] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {paying ? 'Processing...' : `Open Live — ${LIVE_PACK_PRICE_SOL.toFixed(2)} SOL`}
+                </button>
+                <button
+                  onClick={() => handleOpenPack('history')}
+                  disabled={paying}
+                  className="rounded-full bg-[#ffd447] px-6 py-3 text-xs font-black uppercase tracking-widest text-ink transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                  {paying ? 'Processing...' : `Open History — ${HISTORY_PACK_PRICE_SOL.toFixed(2)} SOL`}
+                </button>
+              </div>
               {paying && payStatus && (
                 <p className="max-w-xs text-center text-[11px] font-bold text-[#ffd447]">{payStatus}</p>
               )}
@@ -282,6 +291,7 @@ export function WorldCupPullScreen() {
           <PackPurchaseModal
             packArt={selectedPack.art}
             packLabel={selectedPack.label}
+            liveAvailable={queue.length > 0}
             paying={paying}
             onCancel={() => setPaymentPackOpen(false)}
             onConfirm={handlePackPayment}
@@ -332,6 +342,13 @@ function MomentReveal({
 
       <div className="flex min-w-0 flex-1 flex-col items-center gap-2 md:items-start animate-[rise-in_500ms_ease-out_both]">
         <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-block rounded-full px-3 py-1 text-xs font-black uppercase tracking-widest ${
+              isRealMoment(moment) ? 'bg-[#8fe3b0]/15 text-[#8fe3b0]' : 'bg-white/10 text-white/50'
+            }`}
+          >
+            {isRealMoment(moment) ? 'Real · TxLINE' : 'Demo Seal'}
+          </span>
           <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#ffd447]">
             {moment.kind === 'flip' ? 'Favorite Flip' : 'Odds Swing'}
           </span>

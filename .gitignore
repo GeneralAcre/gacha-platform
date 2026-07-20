@@ -10,6 +10,10 @@ test-ledger
 .gstack/
 .vercel
 
+# frontend
+app/.env
+app/*.env
+
 # backend (Moments / TxLINE)
 backend/.env
 backend/*.env

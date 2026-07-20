@@ -38,6 +38,12 @@ npm run dev
 
 The local Vite server will print its URL (normally `http://localhost:5173`).
 
+Optionally `cp .env.example .env` and set `VITE_SOLANA_RPC_URL` to a dedicated devnet RPC
+endpoint (free tier from Helius, QuickNode, Alchemy, or Triton). Left unset, pack payments
+fall back to Solana's public devnet RPC, which is shared worldwide and slow to confirm under
+load — that's the cause if "Open Pack" hangs on "Approved — confirming on devnet..." for a
+long time.
+
 ### Backend
 
 ```bash

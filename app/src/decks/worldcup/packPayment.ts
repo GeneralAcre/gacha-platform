@@ -22,7 +22,7 @@ export function friendlyPayError(e: unknown): string {
 }
 
 const MAX_PAYMENT_ATTEMPTS = 3
-const POLL_INTERVAL_MS = 1500
+const POLL_INTERVAL_MS = 500
 
 /** Polls a sent transaction's own status directly via HTTP instead of
  * `connection.confirmTransaction`'s websocket-based signature subscription — the public
@@ -38,6 +38,12 @@ const POLL_INTERVAL_MS = 1500
 // of responsiveness.
 const BLOCK_HEIGHT_CHECK_EVERY_N_POLLS = 3
 
+// Accepting `processed` (the leader has seen it, ~1 slot / ~400ms) rather than waiting for
+// `confirmed` (needs supermajority cluster vote lockout, can take several seconds under
+// devnet congestion) trades a small, devnet-only risk -- a `processed` tx can in rare cases
+// still get dropped if the slot it landed in doesn't end up on the finalized fork -- for a
+// much snappier reveal. Worth it here: pack payments are a fixed 0.02 devnet SOL with no
+// real value, and a dropped payment just means retrying, not losing anything real.
 async function pollForConfirmation(
   connection: Connection,
   signature: string,
@@ -46,7 +52,11 @@ async function pollForConfirmation(
   for (let poll = 0; ; poll++) {
     const status = await connection.getSignatureStatus(signature)
     if (status.value?.err) throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`)
-    if (status.value?.confirmationStatus === 'confirmed' || status.value?.confirmationStatus === 'finalized') {
+    if (
+      status.value?.confirmationStatus === 'processed' ||
+      status.value?.confirmationStatus === 'confirmed' ||
+      status.value?.confirmationStatus === 'finalized'
+    ) {
       return 'confirmed'
     }
 

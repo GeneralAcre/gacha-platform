@@ -23,6 +23,41 @@ export function loadHouseKeypair(): Keypair {
   return cachedKeypair;
 }
 
+const POLL_INTERVAL_MS = 500;
+const BLOCK_HEIGHT_CHECK_EVERY_N_POLLS = 3;
+
+/** Polls the memo tx's own status directly via HTTP instead of `confirmTransaction`'s
+ * websocket-based signature subscription — same rationale as the frontend's pack-payment
+ * poll (see app/src/decks/worldcup/packPayment.ts): the public devnet RPC's subscription
+ * can miss the notification and stall well past when the tx actually landed. Accepting
+ * `processed` rather than waiting for `confirmed` trades a small, devnet-only risk (a
+ * `processed` tx can in rare cases still get dropped) for a much snappier seal — every
+ * Moment sealed this way is a fixed-cost devnet memo with no real value at stake. */
+async function pollForSignatureConfirmation(
+  conn: Connection,
+  signature: string,
+  lastValidBlockHeight: number
+): Promise<void> {
+  for (let poll = 0; ; poll++) {
+    const status = await conn.getSignatureStatus(signature);
+    if (status.value?.err) throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
+    if (
+      status.value?.confirmationStatus === "processed" ||
+      status.value?.confirmationStatus === "confirmed" ||
+      status.value?.confirmationStatus === "finalized"
+    ) {
+      return;
+    }
+
+    if (poll % BLOCK_HEIGHT_CHECK_EVERY_N_POLLS === 0) {
+      const currentHeight = await conn.getBlockHeight("confirmed");
+      if (currentHeight > lastValidBlockHeight) throw new Error("Memo transaction expired before confirming");
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+}
+
 /** Sends one devnet memo transaction carrying `payload` (JSON-stringified) as its data,
  * signed by the house keypair. Returns the confirmed signature. Shared by sendMomentTx
  * (Moment odds-swing sealing) and adminMatches (match-metadata sealing) so both land on
@@ -45,7 +80,7 @@ export async function sendMemoTx(payload: unknown, connection?: Connection): Pro
   tx.sign(payer);
 
   const signature = await conn.sendRawTransaction(tx.serialize());
-  await conn.confirmTransaction({ signature, ...latestBlockhash }, "confirmed");
+  await pollForSignatureConfirmation(conn, signature, latestBlockhash.lastValidBlockHeight);
 
   return signature;
 }

@@ -28,6 +28,11 @@ export interface Moment {
   kind: "swing" | "flip";
   narrative: string;
   matchStarted: boolean;
+  /** Set only when this Moment was sealed off an admin-reported real match event
+   * (matchEventMoments.ts) rather than the algorithmic swing-threshold detector --
+   * TxLINE's odds feed has no goal/card data of its own, so this is a human-attested
+   * real event, distinct from the generic swing/flip framing every other Moment uses. */
+  triggerEvent?: "GOAL" | "YELLOW_CARD" | "RED_CARD";
 }
 
 /** A Moment that has been sealed on-chain as a devnet memo transaction. */

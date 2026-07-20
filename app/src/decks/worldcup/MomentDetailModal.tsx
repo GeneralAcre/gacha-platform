@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { MomentCardArt } from './MomentCardArt'
+import { MomentCardArt, TRIGGER_EVENT_LABEL } from './MomentCardArt'
 import { explorerTxUrl, type MomentResult } from './momentsApi'
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -87,6 +87,9 @@ export function MomentDetailModal({
           <div className="mt-5 border-t border-white/10 pt-1">
             <p className="mb-1 mt-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Moment details</p>
             <DetailRow label="Kind" value={moment.kind === 'flip' ? 'Favorite Flip' : 'Odds Swing'} />
+            {moment.triggerEvent && (
+              <DetailRow label="Reported event" value={`${TRIGGER_EVENT_LABEL[moment.triggerEvent]} (admin-attested, real)`} />
+            )}
             <DetailRow label="From probability" value={`${Math.round(moment.fromProbability)}%`} />
             <DetailRow label="To probability" value={`${Math.round(moment.toProbability)}%`} />
             <DetailRow label="Delta" value={`${moment.deltaProbability > 0 ? '+' : ''}${Math.round(moment.deltaProbability)} pts`} />

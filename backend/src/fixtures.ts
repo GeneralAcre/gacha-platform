@@ -43,6 +43,15 @@ async function fetchLatestWinProbability(
   }
 }
 
+/** Standalone one-off version of fetchLatestWinProbability for callers outside the
+ * fetchFixtureSummaries loop (matchEventMoments.ts, reacting to a single admin-reported
+ * event) that don't already have a TxLINE client handy. */
+export async function fetchCurrentWinProbability(
+  fixtureId: number
+): Promise<{ participant1: number; participant2: number } | undefined> {
+  return fetchLatestWinProbability(createTxlineApiClient(), fixtureId);
+}
+
 function classifyStatus(startTimeMs: number | undefined, now: number): FixtureSummary["status"] {
   if (startTimeMs === undefined || startTimeMs > now) return "upcoming";
   return now - startTimeMs < HOT_WINDOW_MS ? "live" : "past";

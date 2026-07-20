@@ -19,6 +19,11 @@ export interface MomentResult {
   signature: string
   /** Admin-curated if set, else a generated placeholder — see backend/src/matchImages.ts. */
   imageUrl?: string
+  /** Set only when this card came from an admin-reported real match event
+   * (backend/src/matchEventMoments.ts) rather than the algorithmic swing detector --
+   * TxLINE's odds feed has no goal/card data of its own, so this is the one case where
+   * the card's "why" is a real, human-attested event instead of a swing/flip guess. */
+  triggerEvent?: 'GOAL' | 'YELLOW_CARD' | 'RED_CARD'
 }
 
 export interface FixtureSummary {

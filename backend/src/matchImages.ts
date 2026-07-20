@@ -15,6 +15,7 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { getMetadata } from "./matchMetadataStore";
 
 const MEDIA_DIR = path.resolve(__dirname, "..", "media", "matches");
 
@@ -138,4 +139,15 @@ export async function ensureGeneratedMatchImage(id: string, input: MatchImageInp
     }
   }
   return `/media/matches/${encodeURIComponent(id)}.svg`;
+}
+
+/** Image lookup for a live TxLINE-tracked fixture's Moment cards -- admin-curated
+ * override if set, else the generated placeholder. Shared by server.ts's recordMoments
+ * (algorithmic swing Moments) and matchEventMoments.ts (admin-reported event Moments) so
+ * both land on the same cover art per fixture. Lives here rather than adminMatches.ts so
+ * either caller can import it without a circular dependency on adminMatches.ts. */
+export async function matchImageForFixture(fixtureId: number, teamA: string, teamB: string): Promise<string> {
+  const id = `live-${fixtureId}`;
+  const meta = getMetadata(id);
+  return meta?.imageUrl ?? ensureGeneratedMatchImage(id, { teamA, teamB, label: "World Cup" });
 }

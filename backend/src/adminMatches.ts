@@ -20,6 +20,7 @@ import {
 } from "./matchMetadataStore";
 import { ensureGeneratedMatchImage } from "./matchImages";
 import { sendMemoTx } from "./sendMemoTx";
+import { sealEventTriggeredMoment } from "./matchEventMoments";
 
 export type AdminMatchStatus = "scheduled" | "live" | "finished";
 
@@ -181,6 +182,16 @@ export async function addMatchEvent(id: string, input: MatchEventInput, createdB
   });
   setEventSealedSignature(id, event.id, signature);
 
+  // Best-effort: also seal a real, pullable Moment card off this event (see
+  // matchEventMoments.ts). The event report above is the source of truth and has already
+  // succeeded either way -- a failure here (e.g. no prior odds point yet for this fixture)
+  // just means no card gets generated this time, never a failed event report.
+  if (entry.fixtureId !== undefined) {
+    sealEventTriggeredMoment(entry.fixtureId, event.type, event.minute, event.playerName).catch((err: any) =>
+      console.warn("[adminMatches] Failed to seal event-triggered Moment:", err.response?.data ?? err.message ?? err)
+    );
+  }
+
   return toView(entry, getMetadata(id));
 }
 
@@ -217,12 +228,4 @@ export async function enrichCollectionEntries(entries: CollectionEntry[]): Promi
       };
     })
   );
-}
-
-/** Same idea as enrichCollectionEntries but for a single live fixture, keyed the same way
- * a "live-<fixtureId>" CollectionEntry would be. Backs Moment image lookup in server.ts. */
-export async function matchImageForFixture(fixtureId: number, teamA: string, teamB: string): Promise<string> {
-  const id = `live-${fixtureId}`;
-  const meta = getMetadata(id);
-  return meta?.imageUrl ?? ensureGeneratedMatchImage(id, { teamA, teamB, label: "World Cup" });
 }

@@ -23,6 +23,14 @@ function buildNarrative(team: string, fromP: number, toP: number, matchMinute?: 
 export class SwingDetector {
   private history = new Map<number, FixtureHistory>();
 
+  /** The most recent OddsUpdate seen for `fixtureId`, if any -- lets a caller outside the
+   * normal ingest loop (e.g. matchEventMoments.ts, reacting to an admin-reported card/goal)
+   * compare against the same live baseline the algorithmic detector already has, without
+   * needing its own separate tracking. */
+  getLastPoint(fixtureId: number): OddsUpdate | undefined {
+    return this.history.get(fixtureId)?.lastPoint;
+  }
+
   /** Feed one OddsUpdate through the detector. Returns a Moment if this update triggers one, else null. */
   ingest(update: OddsUpdate): Moment | null {
     let fixture = this.history.get(update.fixtureId);
@@ -84,6 +92,6 @@ export class SwingDetector {
   }
 }
 
-function crossesFifty(from: number, to: number): boolean {
+export function crossesFifty(from: number, to: number): boolean {
   return (from < 50 && to >= 50) || (from >= 50 && to < 50);
 }

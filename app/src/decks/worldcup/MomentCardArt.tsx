@@ -22,6 +22,23 @@ const STADIUM_ART = '/worldcup-card/Event-card.png'
 const RARITY_BORDER_WIDTH = { common: 0.6, rare: 1.6, legendary: 2.6 }
 const RARITY_BORDER_OPACITY = { common: 0.18, rare: 0.85, legendary: 1 }
 
+export const TRIGGER_EVENT_LABEL: Record<'GOAL' | 'YELLOW_CARD' | 'RED_CARD', string> = {
+  GOAL: 'GOAL',
+  YELLOW_CARD: 'YELLOW CARD',
+  RED_CARD: 'RED CARD',
+}
+
+/** The name-bar title: a real admin-reported event (goal/card) always wins when present --
+ * see backend/src/matchEventMoments.ts -- since that's an actual attested fact, not a
+ * guess. Every other Moment falls back to the flip/swing heuristic this card always used:
+ * a flip (favorite changes) reads as the bigger, more disruptive event (red card); a
+ * swing that doesn't flip the favorite is the smaller caution (yellow card). */
+function titleFor(moment: MomentResult, isFlip: boolean): string {
+  if (moment.triggerEvent) return TRIGGER_EVENT_LABEL[moment.triggerEvent]
+  if (!moment.matchStarted) return isFlip ? 'FLIP' : 'SWING'
+  return isFlip ? 'RED CARD' : 'YELLOW CARD'
+}
+
 export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; className?: string }>(
   function MomentCardArt({ moment, className = '' }, ref) {
     const uid = useId().replace(/:/g, '')
@@ -86,7 +103,7 @@ export const MomentCardArt = forwardRef<SVGSVGElement, { moment: MomentResult; c
               shows the stat itself, never a fabricated in-match event. */}
           <rect x="0" y="108" width="100" height="32" fill="#000000a8" />
           <text x="50" y="122" fill={theme.accent} fontSize="6.4" fontWeight="900" textAnchor="middle" letterSpacing="0.4" fontFamily="Arial, sans-serif">
-            {moment.matchStarted ? (isFlip ? 'RED CARD' : 'YELLOW CARD') : isFlip ? 'FLIP' : 'SWING'}
+            {titleFor(moment, isFlip)}
           </text>
           <text x="50" y="133" fill="#ffffff" fontSize="4.6" fontWeight="700" textAnchor="middle" fontFamily="Arial, sans-serif">
             {moment.team} vs {moment.opponent}

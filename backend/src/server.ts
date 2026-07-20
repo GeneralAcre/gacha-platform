@@ -8,15 +8,15 @@ import express from "express";
 import cors from "cors";
 import * as path from "path";
 import { runSyntheticMoments } from "./synthetic";
-import { SwingDetector } from "./swingDetector";
+import { liveDetector } from "./liveDetector";
 import { sendMomentTx } from "./sendMomentTx";
 import { MomentResult } from "./types";
 import { appendMoments, getRecentMoments } from "./momentsStore";
 import { fetchFixtureSummaries, FixtureSummary } from "./fixtures";
 import { fetchCollection, CollectionEntry } from "./collection";
-import { addMatchEvent, assertMatchExists, enrichCollectionEntries, listAdminMatches, matchImageForFixture, removeMatchEvent, updateAdminMatch } from "./adminMatches";
+import { addMatchEvent, assertMatchExists, enrichCollectionEntries, listAdminMatches, removeMatchEvent, updateAdminMatch } from "./adminMatches";
 import type { MatchEventType } from "./matchMetadataStore";
-import { saveUploadedMatchImage } from "./matchImages";
+import { matchImageForFixture, saveUploadedMatchImage } from "./matchImages";
 import { login, logout, requireAdmin } from "./adminAuth";
 
 const PORT = Number(process.env.PORT) || 8787;
@@ -41,8 +41,9 @@ const HEARTBEAT_LOG_INTERVAL_MS = 30_000;
  * streamOrPollOdds() (SSE and adaptive REST polling running concurrently,
  * each self-healing -- see txlineClient.ts) and seals every detected Moment
  * on-chain automatically, independent of the on-demand /moments/simulate
- * trigger. One SwingDetector persists for the process lifetime so its
- * per-fixture rolling windows survive reconnects.
+ * trigger. Feeds the shared liveDetector (see liveDetector.ts), which persists
+ * for the process lifetime so its per-fixture rolling windows survive
+ * reconnects and stay queryable by matchEventMoments.ts.
  *
  * streamOrPollOdds() is designed to run forever on its own, but this outer
  * loop is a safety net in case it ever throws (e.g. an unrecoverable auth
@@ -50,7 +51,6 @@ const HEARTBEAT_LOG_INTERVAL_MS = 30_000;
  */
 async function watchLiveOdds(): Promise<void> {
   const { streamOrPollOdds } = await import("./txlineClient");
-  const detector = new SwingDetector();
 
   for (;;) {
     try {
@@ -68,7 +68,7 @@ async function watchLiveOdds(): Promise<void> {
           );
         }
 
-        const moment = detector.ingest(update);
+        const moment = liveDetector.ingest(update);
         if (!moment) continue;
         try {
           const signature = await sendMomentTx(moment);
